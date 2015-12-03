@@ -1,0 +1,38 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SayakaAmr", "SayakaAmr\SayakaAmr.vcxproj", "{B4705872-BF93-4059-99C7-F8C35D38BE8B}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Debug|x64 = Debug|x64
+		Debug3d|Win32 = Debug3d|Win32
+		Debug3d|x64 = Debug3d|x64
+		Release|Win32 = Release|Win32
+		Release|x64 = Release|x64
+		Release3d|Win32 = Release3d|Win32
+		Release3d|x64 = Release3d|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B4705872-BF93-4059-99C7-F8C35D38BE8B}.Debug|Win32.ActiveCfg = Debug|Win32
+		{B4705872-BF93-4059-99C7-F8C35D38BE8B}.Debug|Win32.Build.0 = Debug|Win32
+		{B4705872-BF93-4059-99C7-F8C35D38BE8B}.Debug|x64.ActiveCfg = Debug|x64
+		{B4705872-BF93-4059-99C7-F8C35D38BE8B}.Debug|x64.Build.0 = Debug|x64
+		{B4705872-BF93-4059-99C7-F8C35D38BE8B}.Debug3d|Win32.ActiveCfg = Debug3d|Win32
+		{B4705872-BF93-4059-99C7-F8C35D38BE8B}.Debug3d|Win32.Build.0 = Debug3d|Win32
+		{B4705872-BF93-4059-99C7-F8C35D38BE8B}.Debug3d|x64.ActiveCfg = Debug3d|x64
+		{B4705872-BF93-4059-99C7-F8C35D38BE8B}.Debug3d|x64.Build.0 = Debug3d|x64
+		{B4705872-BF93-4059-99C7-F8C35D38BE8B}.Release|Win32.ActiveCfg = Release|Win32
+		{B4705872-BF93-4059-99C7-F8C35D38BE8B}.Release|Win32.Build.0 = Release|Win32
+		{B4705872-BF93-4059-99C7-F8C35D38BE8B}.Release|x64.ActiveCfg = Release|x64
+		{B4705872-BF93-4059-99C7-F8C35D38BE8B}.Release|x64.Build.0 = Release|x64
+		{B4705872-BF93-4059-99C7-F8C35D38BE8B}.Release3d|Win32.ActiveCfg = Release3d|Win32
+		{B4705872-BF93-4059-99C7-F8C35D38BE8B}.Release3d|Win32.Build.0 = Release3d|Win32
+		{B4705872-BF93-4059-99C7-F8C35D38BE8B}.Release3d|x64.ActiveCfg = Release3d|x64
+		{B4705872-BF93-4059-99C7-F8C35D38BE8B}.Release3d|x64.Build.0 = Release3d|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
