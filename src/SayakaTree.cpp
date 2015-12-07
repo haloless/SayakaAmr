@@ -41,7 +41,7 @@ void AmrTree::init() {
 	//
 
 	//
-	const int maxblocks = 20000;
+	const int maxblocks = 40000;
 
 	this->maxBlockNum = maxblocks;
 

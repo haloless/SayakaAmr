@@ -1,6 +1,5 @@
 #pragma once
 
-
 #include <cmath>
 
 #include <iostream>
@@ -23,10 +22,11 @@ using namespace sayaka;
 
 
 /**
- * Poisson problem with sharp immersed boundary
+ * Droplet (or bubble) 
+ * with variable density and IB plane
  */
-#define TESTDIR(path) ("test5" path)
-class Test5
+#define TESTDIR(path) ("test6" path)
+class Test6
 {
 	enum {
 		PhysBC_Fixed = -100,
@@ -38,12 +38,14 @@ class Test5
 		Comp_Divu,
 		Comp_Resid,
 		Comp_LS,
+		Comp_IB,
 		Comp_Exact,
 		NumComp,
 	};
 	enum FaceComp {
 		FaceCompVel = 0,
 		FaceCompAdv,
+		FaceCompRho,
 		NumFaceComp,
 	};
 	enum NodeComp {
@@ -55,8 +57,8 @@ class Test5
 
 	enum ProbType {
 		PROB_CIRCLE,
-		PROB_STAR,
-		PROB_ELLIPSE,
+		//PROB_STAR,
+		//PROB_ELLIPSE,
 	};
 
 	AmrTree *m_tree;
@@ -83,6 +85,11 @@ class Test5
 
 	int probtype;
 	bool prob_use_shape;
+	double prob_circ_rad;
+
+	//
+	bool prob_use_density;
+	double dens_liq, dens_gas;
 
 	int n0x, n0y, n0z; // tile at root level
 
@@ -112,16 +119,21 @@ public:
 		probtype = PROB_CIRCLE;
 		//probtype = PROB_STAR;
 		//probtype = PROB_ELLIPSE;
+		prob_circ_rad = 0.2;
 
-		prob_use_shape = false;
-		//prob_use_shape = true;
+		//prob_use_shape = false;
+		prob_use_shape = true;
+
+		prob_use_density = true;
+		dens_liq = 1.0e3;
+		dens_gas = 1.0;
 
 		//
 		n0x = 1;
 		n0y = 1;
 		n0z = 1;
 
-		const int ndymref = 2;
+		const int ndymref = 4;
 		//minlevel = 1;
 		minlevel = 3;
 		//maxlevel = 3;
@@ -134,7 +146,7 @@ public:
 		//
 		nbx = nb;
 		nby = nb;
-		nbz = NDIM<=2 ? 1 : nb/2;
+		nbz = NDIM<=2 ? 1 : nb;
 		
 		//
 		ng = 2;
@@ -235,7 +247,14 @@ public:
 			mac_op->prepareSolver();
 
 			if (prob_use_shape) {
-				mac_op->setIBFracByLS(*m_data, Comp_LS);
+				mac_op->setIBFracByLS(*m_data, Comp_IB);
+			}
+			if (prob_use_density) {
+				std::vector<TreeData*> rho_inv;
+				for (int dir=0; dir<NDIM; dir++) {
+					rho_inv.push_back(m_face_data[dir]);
+				}
+				mac_op->setCoefB(rho_inv, FaceCompRho);
 			}
 
 			//
@@ -262,7 +281,7 @@ public:
 			// 
 			mac_op->clearSolver();
 
-			if (1) { // Neumann BC, shift the solution
+			if (0) { // Neumann BC, shift the solution
 				double sumsol = 0;
 				double sumana = 0;
 				double volume = 0;
@@ -278,7 +297,7 @@ public:
 						for (int k=vbox.klo(); k<=vbox.khi(); k++) {
 						for (int j=vbox.jlo(); j<=vbox.jhi(); j++) {
 						for (int i=vbox.ilo(); i<=vbox.ihi(); i++) {
-							if (!prob_use_shape || db(i,j,k,Comp_LS)>0) {
+							if (!prob_use_shape || db(i,j,k,Comp_IB)>0) {
 								// only consider valid solution
 								sumsol += db(i,j,k,Comp_Phi) * dv;
 								sumana += db(i,j,k,Comp_Exact) * dv;
@@ -316,7 +335,7 @@ public:
 						for (int k=vbox.klo(); k<=vbox.khi(); k++) {
 						for (int j=vbox.jlo(); j<=vbox.jhi(); j++) {
 						for (int i=vbox.ilo(); i<=vbox.ihi(); i++) {
-							if (!prob_use_shape || db(i,j,k,Comp_LS)>0) {
+							if (!prob_use_shape || db(i,j,k,Comp_IB)>0) {
 								double sol = db(i,j,k,Comp_Phi);
 								double ana = db(i,j,k,Comp_Exact);
 								double err = abs(sol - ana);
@@ -370,6 +389,7 @@ public:
 			cellmeta.guessName(*m_data);
 			cellmeta.name[Comp_Phi] = "pres";
 			cellmeta.name[Comp_LS] = "ls";
+			cellmeta.name[Comp_IB] = "sdf";
 			cellmeta.name[Comp_Exact] = "pexact";
 			//WriteLeafDataVtk(*m_data, TESTDIR("/cell_leaf_sol.vtu"), cellmeta);
 			WriteDataHdf5(*m_data, TESTDIR("/cell_leaf_sol.h5"), cellmeta);
@@ -617,6 +637,7 @@ protected:
 
 		const DoubleBlockData &data = (*m_data)[iblock];
 		const int lscomp = Comp_LS;
+		const int ibcomp = Comp_IB;
 
 		if (block.isLeaf() || block.isParentOfLeafChild()) {
 			const RealBox &bbox = block.boundBox;
@@ -635,8 +656,13 @@ protected:
 				double x = blo.x + ((double) i + 0.5) * dh.x;
 
 				double ls = data(i,j,k,lscomp);
-
-				if (abs(ls) < dx * 3) {
+				double ib = data(i,j,k,ibcomp);
+				const double lscutoff = dx * nb;
+				const double ibcutoff = dx * nb;
+				if (abs(ls)<lscutoff) {
+					needRefine = 1;
+				}
+				if (prob_use_shape && abs(ib)<ibcutoff) {
 					needRefine = 1;
 				}
 			}
@@ -666,6 +692,7 @@ protected:
 
 		DoubleBlockData &ls = (*m_data)[iblock];
 		const int lscomp = Comp_LS;
+		const int ibcomp = Comp_IB;
 
 		{
 			const RealBox &bbox = block.boundBox;
@@ -681,9 +708,13 @@ protected:
 
 				Vector3d pt = Vector3d::VecMake(x, y, z);
 				
+				// interface LS
 				double val = test_ls_sign(pt);
-
 				ls(i,j,k,lscomp) = val;
+
+				// IB LS
+				val = test_ib_sign(pt);
+				ls(i,j,k,ibcomp) = val;
 			}
 			}
 			}
@@ -738,12 +769,19 @@ protected:
 
 			const DoubleBlockData &umac = (*(m_face_data[dir]))[iblock];
 			const int maccomp = FaceCompAdv;
+			const int rhocomp = FaceCompRho; // in fact 1/rho
 
 			for (int k=vbox.klo(); k<=vbox.khi(); k++) {
 				for (int j=vbox.jlo(); j<=vbox.jhi(); j++) {
 					for (int i=vbox.ilo(); i<=vbox.ihi(); i++) {
-						divu(i,j,k,comp) += 1.0/dh(dir) * 
-							(umac(i+ii,j+jj,k+kk,maccomp)-umac(i,j,k,maccomp));
+						double ul = umac(i,j,k,maccomp);
+						double ur = umac(i+ii,j+jj,k+kk,maccomp);
+						if (prob_use_density) {
+							ul *= umac(i,j,k,rhocomp);
+							ur *= umac(i+ii,j+jj,k+kk,rhocomp);
+						}
+
+						divu(i,j,k,comp) += 1.0/dh(dir) * (ur-ul);
 					}
 				}
 			}
@@ -788,6 +826,7 @@ protected:
 	void calc_block_mac_value(int dir, int iblock) {
 		const Vector3i nb = m_tree->validBlockCellBox().size();
 		const RealBox &bbox = (*m_tree)[iblock].boundBox;
+		const Vector3d dh = m_tree->getBlockCellSize(iblock);
 		const double dx = bbox.length(0) / nb.x;
 		const double dy = bbox.length(1) / nb.y;
 		const double dz = bbox.length(2) / nb.z;
@@ -807,6 +846,7 @@ protected:
 
 			const DoubleBlockData &ls = (*m_data)[iblock];
 			const int lscomp = Comp_LS;
+			const int ibcomp = Comp_IB;
 
 			for (int k=face_box.klo(); k<=face_box.khi(); k++) {
 			for (int j=face_box.jlo(); j<=face_box.jhi(); j++) {
@@ -816,14 +856,32 @@ protected:
 				double x = xlo + ((double) i + 0.5*(1-ii)) * dx;
 
 				for (int comp=0; comp<NumFaceComp; comp++) {
-					double val = calc_mac_value(dir, comp, x,y,z);
+					//double val = calc_mac_value(dir, comp, x,y,z);
+					double val = 0;
 
-					if (comp==FaceCompAdv && prob_use_shape) {
-						if (ls(i-ii,j-jj,k-kk,lscomp)<=0 || ls(i,j,k,lscomp)<=0) {
-							val = 0;
+					if (comp == FaceCompAdv) {
+						if (probtype==PROB_CIRCLE) {
+							const double rad = prob_circ_rad;
+							const double kappa = 1.0/rad;
+							double hl = ls(i-ii,j-jj,k-kk,lscomp)>=0 ? 1 : 0;
+							double hr = ls(i,j,k,lscomp)>=0 ? 1 : 0;
+							val = -kappa * (hr-hl) / dh(dir);
 						}
+
+						if (prob_use_shape) {
+							if (ls(i-ii,j-jj,k-kk,ibcomp)<=0 || ls(i,j,k,ibcomp)<=0) {
+								val = 0;
+							}
+						}
+					} else if (comp == FaceCompRho) {
+						double phil = ls(i-ii,j-jj,k-kk,lscomp);
+						double phir = ls(i,j,k,lscomp);
+						double theta = height_frac(phil, phir);
+						double rho = dens_liq*theta + dens_gas*(1.0-theta);
+						val = 1.0 / rho;
 					}
 
+					
 					block_data(i,j,k,comp) = val;
 				}
 			}
@@ -832,42 +890,42 @@ protected:
 		}
 	}
 
-	double calc_mac_value(int dir, int comp, double x, double y, double z) const {
-		const double k = 2.0 * M_PI;
-		
-		const double skx = sin(k*x);
-		const double ckx = cos(k*x);
-		const double sky = sin(k*y);
-		const double cky = cos(k*y);
+	//double calc_mac_value(int dir, int comp, double x, double y, double z) const {
+	//	const double k = 2.0 * M_PI;
+	//	
+	//	const double skx = sin(k*x);
+	//	const double ckx = cos(k*x);
+	//	const double sky = sin(k*y);
+	//	const double cky = cos(k*y);
 
-		const double u = skx * cky;
-		const double v = -ckx * sky;
-		const double w = 0;
+	//	const double u = skx * cky;
+	//	const double v = -ckx * sky;
+	//	const double w = 0;
 
-		double val = 0;
-		if (comp == FaceCompVel) {
-			if (dir == 0) {
-				val = u;
-			} else if (dir == 1) { 
-				val = v;
-			} else {
-				val = w;
-			}
-		} else if (comp == FaceCompAdv) {
-			if (dir == 0) {
-				const double dudx = k * ckx * cky;
-				const double dudy = -k * skx * sky;
-				val = u*dudx + v*dudy;
-			} else if (dir == 1) {
-				const double dvdx = k * skx * sky;
-				const double dvdy = -k * ckx * cky;
-				val = u*dvdx + v*dvdy;
-			} else {
-				val = 0;
-			}
-		}
-		return val;
-	}
+	//	double val = 0;
+	//	if (comp == FaceCompVel) {
+	//		if (dir == 0) {
+	//			val = u;
+	//		} else if (dir == 1) { 
+	//			val = v;
+	//		} else {
+	//			val = w;
+	//		}
+	//	} else if (comp == FaceCompAdv) {
+	//		if (dir == 0) {
+	//			const double dudx = k * ckx * cky;
+	//			const double dudy = -k * skx * sky;
+	//			val = u*dudx + v*dudy;
+	//		} else if (dir == 1) {
+	//			const double dvdx = k * skx * sky;
+	//			const double dvdy = -k * ckx * cky;
+	//			val = u*dvdx + v*dvdy;
+	//		} else {
+	//			val = 0;
+	//		}
+	//	}
+	//	return val;
+	//}
 
 	void move_umac_to_unode() {
 		for (int dir=0; dir<NDIM; dir++) {
@@ -906,42 +964,102 @@ protected:
 		double ls = 0;
 		if (probtype == PROB_CIRCLE) {
 			const Vector3d cen = Vector3d::VecMake(0.0, 0.0, 0.0);
-			const double rad = 0.25;
+			const double rad = prob_circ_rad;
 			double r = Vec3Length(pos, cen);
-			ls = r - rad;
-		} else if (probtype == PROB_STAR) {
-			pos.z = 0;
-			// r(theta) = ra + rb*cos(omega*theta)
-			const double ra = 0.237;
-			const double rb = 0.079;
-			const double omega = 6.0;
-			//static const Vector3d cen = Vector3d::VecMake(0.0, 0.0, 0.0);
+			ls = rad - r;
+		} 
+		//else if (probtype == PROB_STAR) {
+		//	pos.z = 0;
+		//	// r(theta) = ra + rb*cos(omega*theta)
+		//	const double ra = 0.237;
+		//	const double rb = 0.079;
+		//	const double omega = 6.0;
+		//	//static const Vector3d cen = Vector3d::VecMake(0.0, 0.0, 0.0);
 
-			double theta = atan2(pos.y, pos.x);
-			double rstar = ra + rb*cos(omega*theta);
-			double rpt = Vec3Length(pos);
-			ls = rpt - rstar;
-		} else if (probtype == PROB_ELLIPSE) {
-			pos.z = 0;
+		//	double theta = atan2(pos.y, pos.x);
+		//	double rstar = ra + rb*cos(omega*theta);
+		//	double rpt = Vec3Length(pos);
+		//	ls = rpt - rstar;
+		//} else if (probtype == PROB_ELLIPSE) {
+		//	pos.z = 0;
 
-			const double a = 0.75 / 2;
-			const double b = 0.625 / 2;
+		//	const double a = 0.75 / 2;
+		//	const double b = 0.625 / 2;
 
-			double theta = atan2(pos.y, pos.x);
-			double ct = cos(theta);
-			double st = sin(theta);
-			double rellipse = sqrt(1.0 / (ct*ct/(a*a) + st*st/(b*b)));
-			double rpt = Vec3Length(pos);
-			ls = rellipse - rpt;
-		}
+		//	double theta = atan2(pos.y, pos.x);
+		//	double ct = cos(theta);
+		//	double st = sin(theta);
+		//	double rellipse = sqrt(1.0 / (ct*ct/(a*a) + st*st/(b*b)));
+		//	double rpt = Vec3Length(pos);
+		//	ls = rellipse - rpt;
+		//}
 		else {
 			LOGPRINTF("Unknown probtype=%d\n", probtype);
 			exit(1);
 		}
 		return ls;
 	}
+
+	double test_ib_sign(const Vector3d &ptin) const {
+		Vector3d pos = ptin;
+
+		double ls = 0;
+		if (probtype == PROB_CIRCLE) {
+			//const Vector3d cen = Vector3d::VecMake(0.0, 0.0, 0.0);
+			const double rad = prob_circ_rad;
+			const double yplane = -rad / 2;
+			ls = pos.y - yplane;
+		} 
+		//else if (probtype == PROB_STAR) {
+		//	pos.z = 0;
+		//	// r(theta) = ra + rb*cos(omega*theta)
+		//	const double ra = 0.237;
+		//	const double rb = 0.079;
+		//	const double omega = 6.0;
+		//	//static const Vector3d cen = Vector3d::VecMake(0.0, 0.0, 0.0);
+
+		//	double theta = atan2(pos.y, pos.x);
+		//	double rstar = ra + rb*cos(omega*theta);
+		//	double rpt = Vec3Length(pos);
+		//	ls = rpt - rstar;
+		//} else if (probtype == PROB_ELLIPSE) {
+		//	pos.z = 0;
+
+		//	const double a = 0.75 / 2;
+		//	const double b = 0.625 / 2;
+
+		//	double theta = atan2(pos.y, pos.x);
+		//	double ct = cos(theta);
+		//	double st = sin(theta);
+		//	double rellipse = sqrt(1.0 / (ct*ct/(a*a) + st*st/(b*b)));
+		//	double rpt = Vec3Length(pos);
+		//	ls = rellipse - rpt;
+		//}
+		else {
+			LOGPRINTF("Unknown probtype=%d\n", probtype);
+			exit(1);
+		}
+		return ls;
+	}
+
+	double height_frac(double phil, double phir) const {
+		double theta = 0;
+		if (phil>=0 && phir>=0) {
+			theta = 1.0;
+		} else if (phil<0 && phir<0) {
+			theta = 0.0;
+		} else {
+			double lp = std::max(phil, 0.0);
+			double rp = std::max(phir, 0.0);
+			double la = abs(phil);
+			double ra = abs(phir);
+			theta = (lp+rp) / (la+ra);
+		}
+		return theta;
+	}
 };
 #ifdef TESTDIR
 #undef TESTDIR
 #endif
+
 

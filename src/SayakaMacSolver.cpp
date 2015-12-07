@@ -12,7 +12,10 @@ namespace sayaka
 void MacSolver::prepareSolver() {
 	registerMGLevels();
 
-	//
+	// default MAC coefficients
+	setDefaultCoefs();
+
+	// non-IB volume/area fraction
 	setUnitIBVolumeFrac(*m_ib_volfrac);
 	setUnitIBAreaFrac(m_ib_areafrac);
 
@@ -670,6 +673,8 @@ int MacSolver::cg_solve_level(int mg_level,
 	double tol_rel, double tol_abs, int max_iter, 
 	int precond, MacBCMode bc_mode)
 {
+	int stat = 0;
+
 	const AmrTree &tree = getTree();
 
 	// perform CG solver on the current level
@@ -719,6 +724,12 @@ int MacSolver::cg_solve_level(int mg_level,
 	if (isVerbose()) {
 		LOGPRINTF("%s: |resid0| = %e\n", __FUNCTION__, rnorm0);
 	}
+	if (rnorm0 == 0) {
+		if (isVerbose()) {
+			LOGPRINTF("%s: initial converge\n", __FUNCTION__);
+		}
+		return stat;
+	}
 
 	// BICGSTAB variables
 	double rho1 = 0;
@@ -727,7 +738,6 @@ int MacSolver::cg_solve_level(int mg_level,
 
 	//
 	bool conv = false;
-	int stat = 0;
 	int iter = 0;
 	double rnorm = 0;
 
@@ -904,7 +914,6 @@ int MacSolver::mg_precond_level(int mg_level,
 {
 	int verbose_save = m_verbose;
 	setVerbose(0);
-	
 
 	// use zero guess
 	mg_zero_level(mg_level, sol, solcomp, 1);

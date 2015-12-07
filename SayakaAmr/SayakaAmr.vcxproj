@@ -233,6 +233,7 @@
     <ClCompile Include="..\src\SayakaFaceIndex.cpp" />
     <ClCompile Include="..\src\SayakaFillPatch.cpp" />
     <ClCompile Include="..\src\SayakaInterpPatch.cpp" />
+    <ClCompile Include="..\src\SayakaMacCoef.cpp" />
     <ClCompile Include="..\src\SayakaMacIB.cpp" />
     <ClCompile Include="..\src\SayakaMacOperator.cpp" />
     <ClCompile Include="..\src\SayakaMacSolver.cpp" />
@@ -270,6 +271,7 @@
     <ClInclude Include="..\src\Test1.h" />
     <ClInclude Include="..\src\Test4.h" />
     <ClInclude Include="..\src\Test5.h" />
+    <ClInclude Include="..\src\Test6.h" />
     <ClInclude Include="..\src\vector3d.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

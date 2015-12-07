@@ -51,6 +51,7 @@ public:
 		: m_tree(&tree), 
 		m_buf(NULL), m_fillbuf(NULL),
 		m_ib_volfrac(NULL), m_ib_areafrac(),
+		m_acoef(NULL), m_bcoef(),
 		m_verbose(0)
 	{
 		// generate data structure
@@ -97,6 +98,11 @@ public:
 			delete m_ib_volfrac; m_ib_volfrac = NULL;
 		}
 		TreeData::ReleaseDataPArray(m_ib_areafrac);
+
+		if (m_acoef) {
+			delete m_acoef; m_acoef = NULL;
+		}
+		TreeData::ReleaseDataPArray(m_bcoef);
 	}
 
 	void define(const AmrTree &tree);
@@ -136,6 +142,14 @@ public:
 	void calcBlockIBAreaFrac(int iblock, int dir,
 		const TreeData &ls, TreeData &areafrac,
 		int lscomp, int areacomp) const;
+
+	// alpha=0, beta=1, A=0, B[]=1
+	void setDefaultCoefs();
+	void setUniformCoefA(double a);
+	void setUniformCoefB(double b);
+	//
+	void setCoefB(const std::vector<TreeData*> &bdata, int bcomp);
+	void setCoefB(int dir, const TreeData &bdata, int bcomp);
 
 	// must call each time before use!!!
 	void prepareSolver();
@@ -354,6 +368,8 @@ protected:
 
 	// coefficients
 	double m_alpha, m_beta;
+	TreeData *m_acoef;
+	std::vector<TreeData*> m_bcoef;
 
 	// solver parameters
 	int m_max_iter;

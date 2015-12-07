@@ -42,6 +42,10 @@ void MacSolver::define(const AmrTree &tree) {
 	m_ib_volfrac = TreeData::CreateCellData(tree, 1, 0);
 	m_ib_areafrac = TreeData::CreateFaceDataPArray(tree, 1, 0);
 
+	// A & B coefficients
+	m_acoef = TreeData::CreateCellData(tree, 1, 0);
+	m_bcoef = TreeData::CreateFaceDataPArray(tree, 1, 0);
+
 	//
 	m_tower.resize(tree.maxRefineLevel() + 1);
 	for (int ilevel=1; ilevel<=tree.maxRefineLevel(); ilevel++) {
@@ -1224,7 +1228,12 @@ void MacSolver::mg_smooth_block_rbcycle_usefill(
 		// TODO move this 
 		// correction by IB fraction
 		for (FaceIndex face=0; face<FaceIndex::NumFace; face++) {
-			const DoubleBlockData &sfrac = (*m_ib_areafrac[face.dir()])[iblock];
+			const int facedir = face.dir();
+
+			const DoubleBlockData &bcoef = (*m_bcoef[facedir])[iblock];
+			offcoef[face] *= bcoef(i+istag[face],j+jstag[face],k+kstag[face],0);
+
+			const DoubleBlockData &sfrac = (*m_ib_areafrac[facedir])[iblock];
 			offcoef[face] *= sfrac(i+istag[face],j+jstag[face],k+kstag[face],0);
 		}
 		// currently we assume this...
@@ -1345,7 +1354,12 @@ void MacSolver::mg_apply_block_usefill(int mg_level, int iblock,
 		// TODO move this 
 		// correction by IB fraction
 		for (FaceIndex face=0; face<FaceIndex::NumFace; face++) {
-			const DoubleBlockData &sfrac = (*m_ib_areafrac[face.dir()])[iblock];
+			const int facedir = face.dir();
+
+			const DoubleBlockData &bcoef = (*m_bcoef[facedir])[iblock];
+			offcoef[face] *= bcoef(i+istag[face],j+jstag[face],k+kstag[face],0);
+
+			const DoubleBlockData &sfrac = (*m_ib_areafrac[facedir])[iblock];
 			offcoef[face] *= sfrac(i+istag[face],j+jstag[face],k+kstag[face],0);
 		}
 		// currently we assume this...

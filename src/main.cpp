@@ -16,9 +16,9 @@
 #include "SayakaMacSolver.h"
 
 //
-#include "Test4.h"
-#include "Test5.h"
-
+//#include "Test4.h"
+//#include "Test5.h"
+#include "Test6.h"
 
 using namespace sayaka;
 
@@ -36,8 +36,11 @@ int main(int argc, char *argv[] ) {
 	//Test4 t4;
 	//t4.init(argc, argv);
 
-	Test5 t5;
-	t5.init(argc, argv);
+	//Test5 t5;
+	//t5.init(argc, argv);
+
+	Test6 t6;
+	t6.init(argc, argv);
 
 	return 0;
 }

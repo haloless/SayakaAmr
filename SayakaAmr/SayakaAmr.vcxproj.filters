@@ -81,6 +81,9 @@
     <ClCompile Include="..\src\SayakaWriterVtk.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\SayakaMacCoef.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\config.h">
@@ -157,6 +160,9 @@
     </ClInclude>
     <ClInclude Include="..\src\SayakaWriter.h">
       <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Test6.h">
+      <Filter>ヘッダー ファイル\Test</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
