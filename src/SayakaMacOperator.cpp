@@ -51,6 +51,12 @@ void MacSolver::define(const AmrTree &tree) {
 	for (int ilevel=1; ilevel<=tree.maxRefineLevel(); ilevel++) {
 		m_tower[ilevel].define(tree, ilevel);
 	}
+
+	// BC
+	m_bc_rec.resize(tree.maxBlockNum);
+	for (int iblock=0; iblock<tree.numBlocks; iblock++) {
+		m_bc_rec[iblock].setInteriorBC();
+	}
 }
 
 void MacSolver::registerMGLevels() {
@@ -1108,7 +1114,9 @@ static inline void cell_eval_coef(
 	const Vector3d &dx, const Vector3d &ds, const double dv,
 	const double alpha, const double beta,
 	const BlockFaceRegister* block_face[NumFace],
+	const BlockBCRecord &block_bc,
 	double &diagcoef, double offcoef[NumFace],
+	int bcflag[NumFace],
 	int fcflag[NumFace],
 	int cfflag[NumFace])
 {
@@ -1124,10 +1132,19 @@ static inline void cell_eval_coef(
 			if (face_type == FACE_FINE_FINE) {
 				offcoef[face] = beta * ds(dir) / dx(dir);
 			} else if (face_type == FACE_FINE_BC) {
-				offcoef[face] = 0.0;
+				int bc_type = block_bc.type(face);
+				assert(bc_type >= 0);
+				if (bc_type == BCType_Neumann) {
+					offcoef[face] = 0.0;
+					bcflag[face] = 1;
+				} else {
+					assert(bc_type==BCType_Dirichlet || bc_type==BCType_SimpleFill);
+					offcoef[face] = beta * ds(dir) / dx(dir);
+					bcflag[face] = 2;
+				}
 				// BC should have been processed
-				LOGPRINTF("%s: BC not implemented\n", __FUNCTION__);
-				exit(1);
+				//LOGPRINTF("%s: BC not implemented\n", __FUNCTION__);
+				//exit(1);
 			} else if (face_type == FACE_FINE_CRSE) {
 				offcoef[face] = beta * ds(dir) / (dx(dir)*1.5);
 				fcflag[face] = 1;
@@ -1144,7 +1161,7 @@ static inline void cell_eval_coef(
 
 // stencil in each face direction
 static const int ioff[MAX_FACE] = {
-		-XDIM, +XDIM, 0, 0, 0, 0,
+	-XDIM, +XDIM, 0, 0, 0, 0,
 };
 static const int joff[MAX_FACE] = {
 	0, 0, -YDIM, +YDIM, 0, 0,
@@ -1197,6 +1214,8 @@ void MacSolver::mg_smooth_block_rbcycle_usefill(
 	// block face
 	const BlockFaceRegister* blockface[FaceIndex::NumFace];
 	level.getBlockFaceRegs(iblock, blockface);
+	// block BC
+	const BlockBCRecord &blockbc = m_bc_rec[iblock];
 
 	// cell range in each direction
 	const int face_range[MAX_FACE] = {
@@ -1213,6 +1232,8 @@ void MacSolver::mg_smooth_block_rbcycle_usefill(
 		// coarse/fine flag
 		int fcflag[FaceIndex::NumFace] = { 0 };
 		int cfflag[FaceIndex::NumFace] = { 0 };
+		// BC flag
+		int bcflag[FaceIndex::NumFace] = { 0 };
 
 		cell_eval_coef(
 			i, j, k, 
@@ -1221,9 +1242,9 @@ void MacSolver::mg_smooth_block_rbcycle_usefill(
 			face_range, 
 			dx, ds, dv, 
 			alpha, beta, 
-			blockface, 
+			blockface, blockbc, 
 			diagcoef, offcoef, 
-			fcflag, cfflag);
+			bcflag, fcflag, cfflag);
 
 		// TODO move this 
 		// correction by IB fraction
@@ -1245,7 +1266,16 @@ void MacSolver::mg_smooth_block_rbcycle_usefill(
 		for (FaceIndex face=0; face<FaceIndex::NumFace; face++) {
 			double offval = 0;
 			if (cfflag[face] == 0) {
-				offval = offcoef[face] * phi(i+ioff[face],j+joff[face],k+koff[face],dstcomp);
+				if (bcflag[face] == 1) { // Neumann
+					offval = 0;
+					offcoef[face] = 0;
+				} else if (bcflag[face] == 2) { // Dirichlet
+					offval = 0;
+					offcoef[face] *= 2.0;
+				} else {
+					assert(bcflag[face] == 0);
+					offval = offcoef[face] * phi(i+ioff[face],j+joff[face],k+koff[face],dstcomp);
+				} 
 			} else {
 				//offval = cfsave(i,j,k,savecomp+face);
 				const DoubleBlockData &cfflux = (*fluxsave[face.dir()])[iblock];
@@ -1324,6 +1354,8 @@ void MacSolver::mg_apply_block_usefill(int mg_level, int iblock,
 	// block face
 	const BlockFaceRegister* blockface[FaceIndex::NumFace];
 	level.getBlockFaceRegs(iblock, blockface);
+	// block BC
+	const BlockBCRecord &blockbc = m_bc_rec[iblock];
 
 	// cell range in each direction
 	const int face_range[MAX_FACE] = {
@@ -1339,6 +1371,8 @@ void MacSolver::mg_apply_block_usefill(int mg_level, int iblock,
 		// coarse/fine flag
 		int fcflag[NumFace] = { 0 };
 		int cfflag[NumFace] = { 0 };
+		// BC flag
+		int bcflag[NumFace] = { 0 };
 
 		cell_eval_coef(
 			i, j, k,
@@ -1347,9 +1381,9 @@ void MacSolver::mg_apply_block_usefill(int mg_level, int iblock,
 			face_range,
 			dx, ds, dv,
 			alpha, beta,
-			blockface, 
+			blockface, blockbc,
 			diagcoef, offcoef,
-			fcflag, cfflag);
+			bcflag, fcflag, cfflag);
 
 		// TODO move this 
 		// correction by IB fraction
@@ -1370,7 +1404,16 @@ void MacSolver::mg_apply_block_usefill(int mg_level, int iblock,
 		for (FaceIndex face=0; face<FaceIndex::NumFace; face++) {
 			double offval = 0;
 			if (cfflag[face] == 0) {
-				offval = offcoef[face] * phi(i+ioff[face],j+joff[face],k+koff[face],phicomp);
+				if (bcflag[face] == 1) { // Neumann
+					offval = 0;
+					offcoef[face] = 0;
+				} else if (bcflag[face] == 2) { // Dirichlet
+					offval = -offcoef[face] * phi(i,j,k,phicomp);
+					//offcoef[face] *= 2.0;
+				} else {
+					assert(bcflag[face] == 0);
+					offval = offcoef[face] * phi(i+ioff[face],j+joff[face],k+koff[face],phicomp);
+				}
 			} else {
 				const DoubleBlockData &cfsave = (*savedata[face.dir()])[iblock];
 				offval = cfsave(i+istag[face],j+jstag[face],k+kstag[face],savecomp);
@@ -1408,6 +1451,140 @@ void MacSolver::mg_apply_block_usefill(int mg_level, int iblock,
 	}
 }
 
+
+void MacSolver::setBC(const BCRegister &bcreg) {
+	const AmrTree &tree = getTree();
+
+#pragma omp parallel for
+	for (int iblock=0; iblock<tree.numBlocks; iblock++) {
+		m_bc_rec[iblock].setBlock(tree[iblock], bcreg);
+	}
+}
+void MacSolver::fixBC(
+	const TreeData &phi, TreeData &rhs, 
+	int phicomp, int rhscomp) const 
+{
+	assert(phi.isCellData());
+	assert(rhs.isCellData());
+	assert(0<=phicomp && phicomp<phi.numComp());
+	assert(0<=rhscomp && rhscomp<rhs.numComp());
+
+	// PHI is assumed to hold BC values
+	if (phi.numGrow() < 1) {
+		LOGPRINTF("%s: BC value NGROW<1\n", __FUNCTION__);
+		exit(1);
+	}
+
+	const AmrTree &tree = getTree();
+	const int finest_level = tree.currentFinestLevel();
+	const MGLevelTower &tower = getTower(finest_level);
+	assert(!tower.isEmptyLevel());
+
+	// fix RHS on leaf blocks
+#pragma omp parallel for
+	for (int igrid=0; igrid<tower.numLevelBlock; igrid++) {
+		const int iblock = tower[igrid];
+	//for (int iblock=0; iblock<tree.numBlocks; iblock++) {
+		assert(iblock>=0/* && tree[iblock].isLeaf()*/);
+
+		fixBlockBC(finest_level, iblock,
+			phi, rhs, phicomp, rhscomp);
+	}
+}
+void MacSolver::fixBlockBC(int mg_level, int iblock, 
+	const TreeData &phidata, TreeData &rhsdata, 
+	int phicomp, int rhscomp) const 
+{
+	const AmrTree &tree = getTree();
+	const AmrTreeNode &block = tree[iblock];
+
+	const IndexBox &validbox = tree.validBlockCellBox();
+	decl_box_range(validbox, i,j,k);
+
+	// metric
+	const Vector3d dx = tree.getBlockCellSize(iblock);
+	const Vector3d ds = tree.getBlockCellArea(iblock);
+	const double dv = tree.getBlockCellVolume(iblock);
+	// coef
+	const double alpha = getAlpha();
+	const double beta = getBeta();
+
+	//
+	const MGLevelTower &tower = getTower(mg_level);
+	assert(!tower.isEmptyLevel());
+	// block face
+	const BlockFaceRegister* block_face[FaceIndex::NumFace];
+	tower.getBlockFaceRegs(iblock, block_face);
+
+	// BC
+	const BlockBCRecord &block_bcrec = m_bc_rec[iblock];
+
+	const DoubleBlockData &phi = phidata[iblock];
+	DoubleBlockData &rhs = rhsdata[iblock];
+
+	const DoubleBlockData &vfrac = (*m_ib_volfrac)[iblock];
+
+	// loop block faces
+	for (FaceIndex face=0; face<FaceIndex::NumFace; face++) {
+		if (block_face[face]->face_type != FACE_FINE_BC) continue;
+
+
+		int bctype = block_bcrec.type(face);
+		//double bcval = block_bcrec.value(face);
+		// BCREC must hold math BC >= 0
+		assert(bctype >= 0);
+
+		int dir = face.dir();
+		int side = face.side();
+
+		const DoubleBlockData &bcoef = (*m_bcoef[dir])[iblock];
+		const DoubleBlockData &sfrac = (*m_ib_areafrac[dir])[iblock];
+
+		int imin = dir==0 ? (side==0 ? ilo : ihi) : ilo;
+		int imax = dir==0 ? (side==0 ? ilo : ihi) : ihi;
+		int jmin = dir==1 ? (side==0 ? jlo : jhi) : jlo;
+		int jmax = dir==1 ? (side==0 ? jlo : jhi) : jhi;
+		int kmin = dir==2 ? (side==0 ? klo : khi) : klo;
+		int kmax = dir==2 ? (side==0 ? klo : khi) : khi;
+
+		for (int k=kmin; k<=kmax; k++) {
+		for (int j=jmin; j<=jmax; j++) {
+		for (int i=imin; i<=imax; i++) {
+			// value in valid cell
+			double phi0 = phi(i,j,k,phicomp);
+			// value in ghost cell
+			double phi1 = phi(i+ioff[face],j+joff[face],k+koff[face],phicomp);
+
+			double coef = beta * ds(dir) / dx(dir);
+			coef *= bcoef(i+istag[face],j+jstag[face],k+kstag[face],0);
+			coef *= sfrac(i+istag[face],j+jstag[face],k+kstag[face],0);
+
+			double corr = 0;
+			if (bctype == BCType_Neumann) {
+				// assume homogeneous Neumann
+				// do nothing
+			} else if (bctype == BCType_Dirichlet) {
+				double phibc = 0.5 * (phi0 + phi1);
+				corr = phibc * 2.0 * coef;
+			} else if (bctype == BCType_SimpleFill) {
+				double phibc = phi1;
+				corr = phibc * 2.0 * coef;
+			} else {
+				LOGPRINTF("%s: block=%d face=%d unknown BC=%d\n", __FUNCTION__,
+					iblock, (int) face, bctype);
+				exit(1);
+			}
+
+			if (vfrac(i,j,k,0) > 0) {
+				corr /= (dv*vfrac(i,j,k,0));
+				rhs(i,j,k,rhscomp) += corr;
+			} 
+		}
+		}
+		}
+		
+	}
+}
 
 } // namespace_sayaka
 

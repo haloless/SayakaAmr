@@ -173,8 +173,9 @@ bool MGLevelTower::registerBlock(int mg_level,
 				assert(count == ChildIndex::NumChildOnFace);
 			} else if (faceReg.face_type == FACE_FINE_BC) {
 				// TODO
-				LOGPRINTF("%s: BC not implemented\n", __FUNCTION__);
-				exit(1);
+
+				//LOGPRINTF("%s: BC not implemented\n", __FUNCTION__);
+				//exit(1);
 			}
 		} // end loop faces
 

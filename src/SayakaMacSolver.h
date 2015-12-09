@@ -47,6 +47,7 @@ public:
 		NUM_GROW_BUF = 1,
 	};
 
+public:
 	MacSolver(const AmrTree &tree)
 		: m_tree(&tree), 
 		m_buf(NULL), m_fillbuf(NULL),
@@ -150,6 +151,19 @@ public:
 	//
 	void setCoefB(const std::vector<TreeData*> &bdata, int bcomp);
 	void setCoefB(int dir, const TreeData &bdata, int bcomp);
+
+	//
+	//const BCRegister& getBCReg() const { return m_bc_reg; }
+	//BCRegister& getBCReg() { return m_bc_reg; }
+	// set BC
+	//void setHomoBC(int phys_bc, int math_bc);
+	void setBC(const BCRegister &bcreg);
+	void fixBC(const TreeData &phi, TreeData &rhs, 
+		int phicomp, int rhscomp) const;
+	void fixBlockBC(int mg_level, int iblock, 
+		const TreeData &phi, TreeData &rhs, 
+		int phicomp, int rhscomp) const;
+
 
 	// must call each time before use!!!
 	void prepareSolver();
@@ -390,6 +404,10 @@ protected:
 	// if false, use direct index of neighborhood cells
 	// default set to 1
 	int m_use_bndryfill;
+
+	//
+	//BCRegister m_bc_reg;
+	std::vector<BlockBCRecord> m_bc_rec;
 
 	//
 	int m_verbose;

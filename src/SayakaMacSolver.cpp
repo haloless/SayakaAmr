@@ -28,6 +28,18 @@ void MacSolver::clearSolver() {
 	// do something...
 }
 
+//void MacSolver::setHomoBC(int phys_bc, int math_bc) {
+//	BCRegister &bcreg = getBCReg();
+//	for (int ksurr=-ZDIM; ksurr<=ZDIM; ksurr++) {
+//	for (int jsurr=-YDIM; jsurr<=YDIM; jsurr++) {
+//	for (int isurr=-XDIM; isurr<=XDIM; isurr++) {
+//		bcreg.setBCMap(isurr,jsurr,ksurr, phys_bc, math_bc);
+//		bcreg.setBCVal(isurr,jsurr,ksurr, phys_bc, 0.0);
+//	}
+//	}
+//	}
+//}
+
 int MacSolver::mg_solve() {
 	const AmrTree &tree = getTree();
 

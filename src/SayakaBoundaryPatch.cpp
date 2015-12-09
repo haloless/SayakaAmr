@@ -55,7 +55,8 @@ void BoundaryConditionPatch::fillBlockBC(
 		for (int comp=scomp; comp<scomp+ncomp; comp++) {
 			const BCRegister &bcreg = boundaryRegister(comp);
 			int mathbc = bcreg.getBCMap(xbndry,ybndry,zbndry,physbc);
-			double bcval = 0; // TODO find BC value from BC register
+			//double bcval = 0; // TODO find BC value from BC register
+			double bcval = bcreg.getBCVal(xbndry, ybndry, zbndry, physbc);
 
 			fillBasicCellBlockBC(mathbc, bcval, 
 				isweep, sweepdir,

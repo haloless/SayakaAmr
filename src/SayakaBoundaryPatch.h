@@ -47,14 +47,18 @@ public:
 
 enum BndryCondType {
 
-	BCType_Neumann, 
+	BCType_Neumann = 0, 
 	BCType_Dirichlet,
 	BCType_SimpleFill, // directly set value in ghost cell
 };
 
 struct BCRegister {
 	typedef std::map<int,int> bcmap_type;
+	typedef std::map<int,double> bcval_type;
+
 	bcmap_type bcmaps[SurroundingIndex::NumSurr];
+	bcval_type bcvals[SurroundingIndex::NumSurr];
+	
 
 	//void fillBCMap(int phys_bc, int math_bc)
 
@@ -63,6 +67,15 @@ struct BCRegister {
 	{
 		SurroundingIndex ind(isurr, jsurr, ksurr);
 		bcmaps[ind][phys_bc] = math_bc;
+		
+		// init BC value to homogeneous
+		bcvals[ind][phys_bc] = 0.0;
+	}
+	void setBCVal(int isurr, int jsurr, int ksurr,
+		int phys_bc, double bc_val)
+	{
+		SurroundingIndex ind(isurr, jsurr, ksurr);
+		bcvals[ind][phys_bc] = bc_val;
 	}
 
 	int getBCMap(int isurr, int jsurr, int ksurr, 
@@ -77,7 +90,66 @@ struct BCRegister {
 		} 
 		return it->second;
 	}
+	double getBCVal(int isurr, int jsurr, int ksurr, 
+		int phys_bc) const
+	{
+		SurroundingIndex ind(isurr, jsurr, ksurr);
+		bcval_type::const_iterator it = bcvals[ind].find(phys_bc);
+		if (it == bcvals[ind].end()) {
+			LOGPRINTF("Unknown BC mapping for phys_bc=%d\n", phys_bc);
+			exit(1);
+		} 
+		return it->second;
+	}
 };
+
+
+struct BlockBCRecord
+{
+
+	int bc_type[FaceIndex::NumFace];
+	double bc_val[FaceIndex::NumFace];
+
+	void setInteriorBC(int face) {
+		assert(0<=face && face<FaceIndex::NumFace);
+		bc_type[face] = -1;
+		bc_val[face] = 0;
+	}
+	void setInteriorBC() {
+		for (FaceIndex face=0; face<FaceIndex::NumFace; face++) {
+			setInteriorBC(face);
+		}
+	}
+
+	void setBlock(const AmrTreeNode &block, const BCRegister &bcreg) {
+		for (FaceIndex face=0; face<FaceIndex::NumFace; face++) {
+			SurroundingIndex surr = SurroundingIndex::FaceSurrounding(face);
+			int isurr = surr.ipos();
+			int jsurr = surr.jpos();
+			int ksurr = surr.kpos();
+			
+			int physbc = block.neighbor[face];
+			if (physbc <= NeighborType_Boundary) {
+				// block face is physical BC
+				int mathbc = bcreg.getBCMap(isurr,jsurr,ksurr, physbc);
+				double bcval = bcreg.getBCVal(isurr,jsurr,ksurr, physbc);
+				bc_type[face] = mathbc;
+				bc_val[face] = bcval;
+			} else {
+				// interior block face
+				setInteriorBC(face);
+			}
+		}
+	}
+
+	//
+	const int& type(int face) const { return bc_type[face]; }
+	int& type(int face) { return bc_type[face]; }
+	//
+	const double& value(int face) const { return bc_val[face]; }
+	double& value(int face) { return bc_val[face]; }
+};
+
 
 /**
  *

@@ -29,7 +29,8 @@ using namespace sayaka;
 class Test6
 {
 	enum {
-		PhysBC_Fixed = -100,
+		PhysBC_Periodic = -100,
+		PhysBC_Fixed,
 		PhysBC_Symmetry,
 	};
 
@@ -82,6 +83,7 @@ class Test6
 
 	Vector3d probmin, probmax;
 	RealBox probbox;
+	int probbc[NDIM*2];
 
 	int probtype;
 	bool prob_use_shape;
@@ -125,15 +127,22 @@ public:
 		prob_use_shape = true;
 
 		prob_use_density = true;
+		//prob_use_density = false;
 		dens_liq = 1.0e3;
 		dens_gas = 1.0;
+
+		for (FaceIndex face=0; face<FaceIndex::NumFace; face++) {
+			//probbc[face] = PhysBC_Periodic;
+			//probbc[face] = PhysBC_Symmetry;
+			probbc[face] = PhysBC_Fixed;
+		}
 
 		//
 		n0x = 1;
 		n0y = 1;
 		n0z = 1;
 
-		const int ndymref = 4;
+		const int ndymref = 3;
 		//minlevel = 1;
 		minlevel = 3;
 		//maxlevel = 3;
@@ -170,7 +179,7 @@ public:
 		// 
 		this->init_state();
 
-		this->move_umac_to_unode();
+		//this->move_umac_to_unode();
 		if (NDIM == 2) {
 		// save data
 		m_tree->writeTreeLeafBlockGrid(TESTDIR("/amr_leaf_grid_init.tec.dat"), m_step+1, m_time);
@@ -225,7 +234,7 @@ public:
 		// fill boundary
 		m_fillpatch->fillBoundary(0, NumComp, 2);
 
-		this->move_umac_to_unode();
+		//this->move_umac_to_unode();
 		// save data
 		if (NDIM == 2) {
 		m_tree->writeTreeLeafBlockGrid(TESTDIR("/amr_leaf_grid.tec.dat"), m_step+1, m_time);
@@ -257,8 +266,13 @@ public:
 				mac_op->setCoefB(rho_inv, FaceCompRho);
 			}
 
-			//
-			//mac_op->setScalars(0.0, 0.25);
+			// set BC
+			mac_op->setBC(m_bcpatch->boundaryRegister(Comp_Phi));
+			// correct RHS with BC
+			TreeData::SetValue(*m_data, 0.0, Comp_Phi, 1, 0);
+			m_fillpatch->fillBoundary(Comp_Phi, 1, 1);
+			mac_op->fixBC(*m_data, *m_data, Comp_Phi, Comp_Divu);
+
 			mac_op->setRhs(*m_data, Comp_Divu);
 			mac_op->setZeroSol();
 			mac_op->setTolerance(0.0, 1.0e-8);
@@ -363,7 +377,7 @@ public:
 			m_fillpatch->restrictAll(Comp_Phi, 1);
 			move_pcell_to_pnode();
 
-			if (1) { // flux 
+			if (0) { // flux 
 				const int finest_level = m_tree->currentFinestLevel();
 				for (int dir=0; dir<NDIM; dir++) {
 					mac_op->mg_flux_level(finest_level, 
@@ -388,10 +402,12 @@ public:
 			WriterMeta cellmeta;
 			cellmeta.guessName(*m_data);
 			cellmeta.name[Comp_Phi] = "pres";
+			cellmeta.name[Comp_Divu] = "rhs";
+			cellmeta.name[Comp_Resid] = "resid";
 			cellmeta.name[Comp_LS] = "ls";
 			cellmeta.name[Comp_IB] = "sdf";
 			cellmeta.name[Comp_Exact] = "pexact";
-			//WriteLeafDataVtk(*m_data, TESTDIR("/cell_leaf_sol.vtu"), cellmeta);
+			WriteLeafDataVtk(*m_data, TESTDIR("/cell_leaf_sol.vtu"), cellmeta);
 			WriteDataHdf5(*m_data, TESTDIR("/cell_leaf_sol.h5"), cellmeta);
 
 			WriterMeta nodemeta;
@@ -425,76 +441,95 @@ protected:
 			m_tree->numBlocks = nroot;
 
 			for (int k=0; k<n0z; k++) {
-				for (int j=0; j<n0y; j++) {
-					for (int i=0; i<n0x; i++) {
-						int iroot = i + j*n0x + k*n0x*n0y;
+			for (int j=0; j<n0y; j++) {
+			for (int i=0; i<n0x; i++) {
+				int iroot = i + j*n0x + k*n0x*n0y;
 
-						AmrTreeNode &root = m_tree->blocks[iroot];
+				AmrTreeNode &root = m_tree->blocks[iroot];
 
-						Vector3d block_lo = probbox.lo();
-						Vector3d block_hi = probbox.lo();
-						block_lo.x += probbox.length(0) / n0x * i;
-						block_hi.x += probbox.length(0) / n0x * (i+1);
-						block_lo.y += probbox.length(1) / n0y * j;
-						block_hi.y += probbox.length(1) / n0y * (j+1);
-						if (NDIM == 3) {
-							block_lo.z += probbox.length(2) / n0z * k;
-							block_hi.z += probbox.length(2) / n0z * (k+1);
-						}
-
-						RealBox rootbox(block_lo, block_hi);
-						root.boundBox = rootbox;
-						root.blockCenter = rootbox.center();
-						root.blockLength = rootbox.length();
-
-						root.nodeType = TreeNodeType_IsLeaf;
-						root.setLevel(root_level);
-
-						// set BC to all-periodic
-						for (FaceIndex iface=0; iface<FaceIndex::NumFace; iface++) {
-							int ineigh = -1;
-							if (iface == 0) {
-								if (i == 0) {
-									ineigh = (n0x-1) + j*n0x + k*n0x*n0y;
-								} else {
-									ineigh = (i-1) + j*n0x + k*n0x*n0y;
-								}
-							} else if (iface == 1) {
-								if (i == n0x-1) {
-									ineigh = 0 + j*n0x + k*n0x*n0y;
-								} else {
-									ineigh = (i+1) + j*n0x + k*n0x*n0y;
-								}
-							} else if (iface == 2) {
-								if (j == 0) {
-									ineigh = i + (n0y-1)*n0x + k*n0x*n0y;
-								} else {
-									ineigh = i + (j-1)*n0x + k*n0x*n0y;
-								}
-							} else if (iface == 3) {
-								if (j == n0y-1) {
-									ineigh = i + (0)*n0x + k*n0x*n0y;
-								} else {
-									ineigh = i + (j+1)*n0x + k*n0x*n0y;
-								}
-							} else if (iface == 4) {
-								if (k == 0) {
-									ineigh = i + j*n0x + (n0z-1)*n0x*n0y;
-								} else {
-									ineigh = i + j*n0x + (k-1)*n0x*n0y;
-								}
-							} else if (iface == 5) {
-								if (k == n0z-1) {
-									ineigh = i + j*n0x + (0)*n0x*n0y;
-								} else {
-									ineigh = i + j*n0x + (k+1)*n0x*n0y;
-								}
-							}
-							assert(0<=ineigh && ineigh<n0x*n0y*n0z);
-							root.neighbor[iface] = ineigh;
-						} // end loop face
-					}
+				Vector3d block_lo = probbox.lo();
+				Vector3d block_hi = probbox.lo();
+				block_lo.x += probbox.length(0) / n0x * i;
+				block_hi.x += probbox.length(0) / n0x * (i+1);
+				block_lo.y += probbox.length(1) / n0y * j;
+				block_hi.y += probbox.length(1) / n0y * (j+1);
+				if (NDIM == 3) {
+					block_lo.z += probbox.length(2) / n0z * k;
+					block_hi.z += probbox.length(2) / n0z * (k+1);
 				}
+
+				RealBox rootbox(block_lo, block_hi);
+				root.boundBox = rootbox;
+				root.blockCenter = rootbox.center();
+				root.blockLength = rootbox.length();
+
+				root.nodeType = TreeNodeType_IsLeaf;
+				root.setLevel(root_level);
+
+				// set BC to all-periodic
+				for (FaceIndex iface=0; iface<FaceIndex::NumFace; iface++) {
+					int ineigh = -1;
+					if (iface == 0) {
+						if (i == 0) {
+							if (probbc[iface] == PhysBC_Periodic) {
+								ineigh = (n0x-1) + j*n0x + k*n0x*n0y;
+							} else {
+								ineigh = probbc[iface];
+							}
+						} else {
+							ineigh = (i-1) + j*n0x + k*n0x*n0y;
+						}
+					} else if (iface == 1) {
+						if (i == n0x-1) {
+							if (probbc[iface] == PhysBC_Periodic)
+								ineigh = 0 + j*n0x + k*n0x*n0y;
+							else
+								ineigh = probbc[iface];
+						} else {
+							ineigh = (i+1) + j*n0x + k*n0x*n0y;
+						}
+					} else if (iface == 2) {
+						if (j == 0) {
+							if (probbc[iface] == PhysBC_Periodic) 
+								ineigh = i + (n0y-1)*n0x + k*n0x*n0y;
+							else
+								ineigh = probbc[iface];
+						} else {
+							ineigh = i + (j-1)*n0x + k*n0x*n0y;
+						}
+					} else if (iface == 3) {
+						if (j == n0y-1) {
+							if (probbc[iface] == PhysBC_Periodic)
+								ineigh = i + (0)*n0x + k*n0x*n0y;
+							else
+								ineigh = probbc[iface];
+						} else {
+							ineigh = i + (j+1)*n0x + k*n0x*n0y;
+						}
+					} else if (iface == 4) {
+						if (k == 0) {
+							if (probbc[iface] == PhysBC_Periodic)
+								ineigh = i + j*n0x + (n0z-1)*n0x*n0y;
+							else
+								ineigh = probbc[iface];
+						} else {
+							ineigh = i + j*n0x + (k-1)*n0x*n0y;
+						}
+					} else if (iface == 5) {
+						if (k == n0z-1) {
+							if (probbc[iface] == PhysBC_Periodic)
+								ineigh = i + j*n0x + (0)*n0x*n0y;
+							else
+								ineigh = probbc[iface];
+						} else {
+							ineigh = i + j*n0x + (k+1)*n0x*n0y;
+						}
+					}
+					//assert(0<=ineigh && ineigh<n0x*n0y*n0z);
+					root.neighbor[iface] = ineigh;
+				} // end loop face
+			}
+			}
 			}
 		}
 
@@ -564,13 +599,14 @@ protected:
 				int jpos = isurr.jpos();
 				int kpos = isurr.kpos();
 
-				if (1) {
+				if (comp == Comp_Phi) {
 					bcreg.setBCMap(ipos, jpos, kpos, PhysBC_Fixed, BCType_Dirichlet);
+					bcreg.setBCVal(ipos,jpos,kpos, PhysBC_Fixed, 10.0);
+					bcreg.setBCMap(ipos, jpos, kpos, PhysBC_Symmetry, BCType_Neumann);
 				} else {
-					bcreg.setBCMap(ipos, jpos, kpos, PhysBC_Fixed, BCType_SimpleFill);
+					bcreg.setBCMap(ipos, jpos, kpos, PhysBC_Symmetry, BCType_Neumann);
+					bcreg.setBCMap(ipos, jpos, kpos, PhysBC_Fixed, BCType_Neumann);
 				}
-
-				bcreg.setBCMap(ipos, jpos, kpos, PhysBC_Symmetry, BCType_Neumann);
 			}
 		}
 
@@ -618,6 +654,7 @@ protected:
 		m_tree->treeStateData.push_back(*m_state);
 
 		// MAC state
+		if (0) {
 		for (int dir=0; dir<NDIM; dir++) {
 			TreeStateData face_state;
 			face_state.new_data = m_face_data[dir];
@@ -626,7 +663,7 @@ protected:
 
 			m_tree->treeStateData.push_back(face_state);
 		}
-
+		}
 	}
 
 	void test_block_refine(int iblock) {
@@ -862,7 +899,7 @@ protected:
 					if (comp == FaceCompAdv) {
 						if (probtype==PROB_CIRCLE) {
 							const double rad = prob_circ_rad;
-							const double kappa = 1.0/rad;
+							const double kappa = 1.0/rad * (NDIM-1);
 							double hl = ls(i-ii,j-jj,k-kk,lscomp)>=0 ? 1 : 0;
 							double hr = ls(i,j,k,lscomp)>=0 ? 1 : 0;
 							val = -kappa * (hr-hl) / dh(dir);

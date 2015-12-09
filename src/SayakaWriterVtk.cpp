@@ -3,6 +3,10 @@
 
 //#define SAYAKA_USE_VTK
 
+#if defined(NDEBUG) || !defined(DEBUG)
+#	define SAYAKA_USE_VTK
+#endif
+
 #ifdef SAYAKA_USE_VTK
 // our helper header
 #	define VTKHELPER_LINKER_PRAGMA
