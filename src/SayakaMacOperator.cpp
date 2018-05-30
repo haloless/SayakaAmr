@@ -983,8 +983,15 @@ void MacSolver::mg_flux_block_usefill(
 			const BlockFaceRegister &faceReg = mgLevelReg.getFaceReg(iblock, face);
 
 			if (faceReg.face_type == FACE_FINE_BC) { // physical BC
-				LOGPRINTF("%s: BC not implemented\n", __FUNCTION__);
-				exit(1);
+				if (0) {
+					LOGPRINTF("%s: BC not implemented\n", __FUNCTION__);
+					exit(1);
+				}
+				else {
+					flux(i, j, k, fluxcomp) =
+						//-(phi(i, j, k, phicomp) - phi(i - ii, j - jj, k - kk, phicomp)) / dh;
+						0;
+				}
 			} else if (faceReg.face_type == FACE_FINE_FINE) { // in-level fine-fine face
 				// flux calculated directly
 				flux(i,j,k,fluxcomp) = 
@@ -1134,11 +1141,11 @@ static inline void cell_eval_coef(
 			} else if (face_type == FACE_FINE_BC) {
 				int bc_type = block_bc.type(face);
 				assert(bc_type >= 0);
-				if (bc_type == BCType_Neumann) {
+				if (bc_type == BCType::Neumann) {
 					offcoef[face] = 0.0;
 					bcflag[face] = 1;
 				} else {
-					assert(bc_type==BCType_Dirichlet || bc_type==BCType_SimpleFill);
+					assert(bc_type== BCType::Dirichlet || bc_type== BCType::SimpleFill);
 					offcoef[face] = beta * ds(dir) / dx(dir);
 					bcflag[face] = 2;
 				}
@@ -1560,13 +1567,13 @@ void MacSolver::fixBlockBC(int mg_level, int iblock,
 			coef *= sfrac(i+istag[face],j+jstag[face],k+kstag[face],0);
 
 			double corr = 0;
-			if (bctype == BCType_Neumann) {
+			if (bctype == BCType::Neumann) {
 				// assume homogeneous Neumann
 				// do nothing
-			} else if (bctype == BCType_Dirichlet) {
+			} else if (bctype == BCType::Dirichlet) {
 				double phibc = 0.5 * (phi0 + phi1);
 				corr = phibc * 2.0 * coef;
-			} else if (bctype == BCType_SimpleFill) {
+			} else if (bctype == BCType::SimpleFill) {
 				double phibc = phi1;
 				corr = phibc * 2.0 * coef;
 			} else {

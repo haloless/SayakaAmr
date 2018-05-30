@@ -15,9 +15,7 @@
 #include "SayakaBox.h"
 
 
-namespace sayaka
-{
-
+SAYAKA_NS_BEGIN;
 
 
 //
@@ -38,7 +36,7 @@ enum TreeNodeType {
  * Physical boundary <= this value
  */
 enum NeighborType {
-	NeighborType_Boundary = -20,
+	PhysBndry = -20,
 };
 
 
@@ -48,7 +46,7 @@ struct SurroundingBlocks;
 struct TreeStateData;
 struct InterpPatch;
 struct FillPatch;
-struct BoundaryConditionPatch;
+struct BCPatch;
 
 
 struct AmrTreeNode
@@ -144,6 +142,13 @@ public:
 		this->blockCenter = bbox.center();
 		this->blockLength = bbox.length();
 	}
+
+	void setBound(const double xlo[], const double xhi[]) {
+		this->boundBox = RealBox(xlo, xhi);
+		this->blockCenter = boundBox.center();
+		this->blockLength = boundBox.length();
+	}
+
 }; // struct_amrtreenode
 
 struct AmrTreeLevel
@@ -159,11 +164,13 @@ public:
 	//
 	//int numLevelBlock() const { return levelBlock.size(); }
 	bool isEmptyLevel() const { 
-		assert(numLevelBlock>=0);
+		assert(numLevelBlock >= 0);
 		return numLevelBlock == 0; 
 	}
 
 	typedef std::vector<int>::const_iterator level_block_iter;
+
+	auto& blockIds() const { return levelBlock; }
 
 	const int& operator[](int igrid) const { 
 		assert(0<=igrid && igrid<numLevelBlock); 
@@ -232,6 +239,13 @@ public:
 	
 	void init();
 
+	// setup uniformly divided root level
+	void initUniformRootLevel(
+		const Vector3i &ndiv,
+		const RealBox &rbox,
+		const int bc_type[MAX_FACE], 
+		const bool is_periodic[MAX_FACE]);
+
 	// call this after root level is setup
 	void initRefineToMinLevel();
 
@@ -289,6 +303,7 @@ public:
 	int maxRefineLevel() const { return maxAmrLevel; }
 	int minRefineLevel() const { return minAmrLevel; }
 	int currentFinestLevel() const {
+		// TODO remove this loop, keep finest level in memory
 		int finest_level = 0;
 		for (int i=0; i<numBlocks; i++) {
 			if (blocks[i].refineLevel > finest_level) {
@@ -362,11 +377,11 @@ public:
 
 	int isCoarseLevelSurrounding(int ii, int jj, int kk) const {
 		int surr = (*this)(ii,jj,kk);
-		return surr<0 && surr>NeighborType_Boundary;
+		return surr<0 && surr>NeighborType::PhysBndry;
 	}
 	int isExternalBoundarySurrounding(int ii, int jj, int kk) const {
 		int surr = (*this)(ii,jj,kk);
-		return surr <= NeighborType_Boundary;
+		return surr <= NeighborType::PhysBndry;
 	}
 	int isSameLevelSurrounding(int ii, int jj, int kk) const {
 		int surr = (*this)(ii,jj,kk);
@@ -422,7 +437,7 @@ public:
 			const int *neigh = tree.blocks[iblock].neighbor;
 			std::copy(neigh, neigh+MAX_FACE, cneigh);
 			return 1;
-		} else if (iblock <= NeighborType_Boundary) { 
+		} else if (iblock <= NeighborType::PhysBndry) {
 			// hits boundary, fill with this boundary type
 			std::fill(cneigh, cneigh+MAX_FACE, iblock);
 			return 1;
@@ -487,7 +502,7 @@ public:
 				lbref = lbref_samelevel;
 				corner.first = tree[lb].neighbor[ff];
 				corner.second = SurroundingIndex(ii,jj,kk);
-			} else if (lb <= NeighborType_Boundary) { // boundary
+			} else if (lb <= NeighborType::PhysBndry) { // boundary
 				// check no cell position yet
 				if (lbref == -1) {
 					lbref = lbref_boundary;
@@ -519,7 +534,7 @@ struct TreeStateData
 
 
 	//InterpPatch *interp_patch;
-	BoundaryConditionPatch *bc_patch;
+	BCPatch *bc_patch;
 	FillPatch *fill_new_patch; // bind with new_data
 
 public:
@@ -551,7 +566,6 @@ public:
 
 
 
-} // namespace sayaka
-
+SAYAKA_NS_END;
 
 

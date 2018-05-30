@@ -5,20 +5,24 @@
 #include "SayakaTree.h"
 #include "SayakaTreeData.h"
 
-namespace sayaka
-{
+SAYAKA_NS_BEGIN;
+
 
 /**
- * Interpolate between cell/face/node data
+ * Interpolate between cell/face/node data.
+ * This only operates block-by-block on the same tree level.
+ * It is required that boundary cells have been properly populated before this.
  */
 struct VarLocInterpolator 
 {
 	const AmrTree *m_tree;
 
-	VarLocInterpolator() : m_tree(NULL) {}
+	VarLocInterpolator() : m_tree(nullptr) {}
+
 	VarLocInterpolator(const AmrTree &tree)
 		: m_tree(&tree)
 	{}
+
 	virtual ~VarLocInterpolator() {}
 
 public:
@@ -26,6 +30,7 @@ public:
 	/*
 	 * Low-level, block-based
 	 */
+
 	//
 	void interp_block_cell_to_face(int dir,
 		DoubleBlockData &face_data,
@@ -58,8 +63,9 @@ public:
 		int dstcomp, int srccomp) const;
 
 	/*
-	 *
+	 * Work on all tree data
 	 */
+
 	//
 	void interp_cell_to_face(int dir,
 		TreeData &face_data, const TreeData &cell_data,
@@ -72,6 +78,12 @@ public:
 	void interp_cell_to_node(
 		TreeData &node_data, const TreeData &cell_data,
 		int dstcomp, int srccomp, int ncomp, int ngrow) const;
+
+	//
+	void interp_face_to_node(int dir,
+		TreeData &node_data, const TreeData &face_data,
+		int dstcomp, int srccomp, int ncomp, int ngrow) const;
+
 }; // struct_varlocinterpolator
 
 
@@ -79,6 +91,6 @@ public:
 
 
 
-} // namespace_sayaka
+SAYAKA_NS_END;
 
 

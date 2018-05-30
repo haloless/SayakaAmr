@@ -2,8 +2,8 @@
 #include "SayakaTower.h"
 #include "SayakaFillPatch.h"
 
-namespace sayaka
-{
+SAYAKA_NS_BEGIN;
+
 
 void MGLevelTower::define(const AmrTree &tree, int mg_level) {
 	assert(m_tree == NULL);
@@ -95,11 +95,11 @@ bool MGLevelTower::registerBlock(int mg_level,
 			BlockFaceRegister &faceReg = getFaceReg(iblock, face);
 
 			const int ineigh = block.neighbor[face];
-			if (ineigh <= NeighborType_Boundary) {
+			if (ineigh <= NeighborType::PhysBndry) {
 				// hit physical boundary
 				faceReg.face_type = FACE_FINE_BC;
 				faceReg.face_neigh = ineigh;
-			} else if (NeighborType_Boundary<ineigh && ineigh<0) {
+			} else if (NeighborType::PhysBndry<ineigh && ineigh<0) {
 				// should be fine-coarse face
 				assert(ineigh == -1);
 				assert(ilevel > tree.minAmrLevel);
@@ -321,8 +321,12 @@ void MGLevelTower::syncSubLevelCrseFineFlux(
 	InterpPatch flux_interp(const_cast<AmrTree&>(tree), fluxdata, fluxdata.validBox().type());
 	if (sync_mode == FLUX_SYNC_AVG) {
 		flux_interp.setRestriction(fluxcomp, InterpPatch::RESTRICT_AVERAGE);
-	} else {
+	}
+	else if (sync_mode == FLUX_SYNC_SUM) {
 		flux_interp.setRestriction(fluxcomp, InterpPatch::RESTRICT_SUM);
+	}
+	else {
+		LOGPRINTF("Invalid sync_mode\n"); std::abort();
 	}
 
 	//
@@ -467,7 +471,7 @@ void MGLevelTower::setSubLevelDataValue(
 	//}
 }
 
+SAYAKA_NS_END;
 
-} // namespace_sayaka
 
 

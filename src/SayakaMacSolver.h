@@ -7,15 +7,20 @@
 #include "SayakaFillPatch.h"
 #include "SayakaTower.h"
 
-namespace sayaka
-{
-
+SAYAKA_NS_BEGIN;
 
 
 
 /**
  * Solve MAC projection-like operator
  * L(phi) = alpha.A.phi - beta.div(B.grad(phi)) = rhs
+ * 
+ * This solver is aware of the tree structure
+ * and supports:
+ * (a) direct solving on leaf blocks
+ * (b) multi-level multi-grid solving
+ *
+ * An auxilary result is the gradient flux of solution PHI.
  */
 class MacSolver
 {
@@ -414,10 +419,12 @@ protected:
 
 private:
 	// disable copy
-	MacSolver(const MacSolver&);
-	MacSolver& operator=(const MacSolver&);
+	MacSolver(const MacSolver&) = delete;
+	MacSolver& operator=(const MacSolver&) = delete;
+
 }; // class_sayakamacsolver
 
 
 
-} // namespace_sayaka
+SAYAKA_NS_END;
+

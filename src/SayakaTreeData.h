@@ -12,8 +12,9 @@
 #include "SayakaTree.h"
 
 
-namespace sayaka
-{
+SAYAKA_NS_BEGIN;
+
+
 
 /**
  * The mapping between coarse/fine grid index
@@ -82,89 +83,67 @@ struct IndexMapping {
  * It holds its own block data,
  * while the tree structure must be found from the tree.
  */
-struct TreeData
+class TreeData
 {
-	//
-	AmrTree *m_tree;
+protected:
+
+	AmrTree *m_tree; // pointer to tree
 
 	IndexBox m_validBox;
 	IndexBox m_indexBox;
-	int m_numComp;
-	int m_numGrow;
+
+	int m_numComp; // number of components
+	int m_numGrow; // number of ghosts
 
 	//
-	DoubleBlockData *m_data;
+	using value_type = double;
+
+	GridData<value_type> *m_data;
+	std::vector<value_type> m_buf;
 
 public:
-	//
+
+	// construct empty
+	TreeData();
+
+	// construct by TREE and BOX
 	TreeData(AmrTree &tree, 
 		const IndexBox &validBox, 
 		const IndexBox &indexBox, 
 		int ngrow,
-		int ncomp=1)
-		: m_tree(&tree), 
-		m_validBox(validBox),
-		m_indexBox(indexBox),
-		m_numGrow(ngrow),
-		m_numComp(ncomp),
-		m_data(NULL)
-	{
-		assert(validBox.type() == indexBox.type());
-
-		const int maxblock = tree.maxBlockNum;
-		allocData(maxblock);
-	}
-
-	//TreeData(AmrTree &tree,
-	//	const IndexBox &validBox,
-	//	int ngrow, 
-	//	int ncomp=1)
-	//	: m_tree(&tree),
-	//	m_validBox(validBox),
-	//	m_indexBox(validBox), // to be grown
-	//	m_numGrow(ngrow), 
-	//	m_numComp(ncomp),
-	//	m_data(NULL)
-	//{
-	//	// first grow index box to have ghost cells
-	//	m_indexBox.extend(ngrow);
-
-	//	const int maxblock = tree.maxBlockNum;
-	//	allocData(maxblock);
-	//}
-
+		int ncomp = 1);
 
 	// copy
-	TreeData(const TreeData &src)
-		: m_tree(src.m_tree),
-		m_validBox(src.m_validBox),
-		m_indexBox(src.m_indexBox),
-		m_numComp(src.m_numComp),
-		m_numGrow(src.m_numGrow),
-		m_data(NULL)
-	{
-		const int maxblock = m_tree->maxBlockNum;
-		allocData(maxblock);
+	TreeData(const TreeData &src);
+	
+	// move
+	TreeData(TreeData &&src);
 
-		copyValue(src);
-	}
+	// destroy
+	~TreeData();
 
-	~TreeData()
-	{
-		if (m_data) {
-			delete[] m_data;
-			m_data = NULL;
-		}
-	}
+	// define empty data
+	void define(AmrTree &tree,
+		const IndexBox &validBox,
+		const IndexBox &indexBox,
+		int ngrow, int ncomp);
+
+	// TODO copy assign
+	TreeData& operator=(const TreeData &rhs) = delete;
+
+	// move assign
+	TreeData& operator=(TreeData &&rhs);
+
 
 protected:
-	void allocData(int maxblock) {
-		m_data = new DoubleBlockData[maxblock];
-		for (int i=0; i<maxblock; i++) {
-			m_data[i].reset(m_indexBox, m_numComp);
-		}
-	}
 	
+	// allocate data blocks
+	// actual data buffer is allocated as a whole chunk
+	// and divided to each block
+	void allocData(int maxblock);
+	
+	void freeData();
+
 public:
 	//
 	const AmrTree& tree() const { return *m_tree; }
@@ -179,7 +158,10 @@ public:
 	int numComp() const { return m_numComp; }
 	int numGrow() const { return m_numGrow; }
 
+	VariableLocation indexType() const { return m_validBox.type(); }
+
 	int isCellData() const { return m_validBox.isCellBox(); }
+	int isFaceData() const { return m_validBox.isFaceBox(); }
 	int isFaceData(int dir) const { return m_validBox.isFaceBox(dir); }
 	int isNodeData() const { return m_validBox.isNodeBox(); }
 
@@ -230,6 +212,7 @@ public:
 		assert(this->numGrow() == rhs.numGrow());
 
 		std::swap(this->m_data, rhs.m_data);
+		std::swap(this->m_buf, rhs.m_buf);
 	}
 
 	//
@@ -247,6 +230,13 @@ public:
 	//
 	static std::vector<TreeData*> CreateFaceDataPArray(const AmrTree &tree, int ncomp, int ngrow);
 	static void ReleaseDataPArray(std::vector<TreeData*> &parray, bool clear_array=true);
+
+	//
+	// move-based version
+	//
+	static TreeData MakeCellData(const AmrTree &tree, int ncomp, int ngrow);
+	static TreeData MakeFaceData(const AmrTree &tree, int dir, int ncomp, int ngrow);
+	static TreeData MakeNodeData(const AmrTree &tree, int ncomp, int ngrow);
 
 
 	//
@@ -317,8 +307,6 @@ protected:
 
 
 
-
-} // namespace_sayaka
-
+SAYAKA_NS_END;
 
 

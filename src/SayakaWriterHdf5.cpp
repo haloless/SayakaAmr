@@ -8,13 +8,13 @@
 #ifdef SAYAKA_USE_HDF
 #	define H5_USE_16_API
 #	include <hdf5.h>
-#	pragma comment(lib, "hdf5.lib")
-#	pragma comment(lib, "hdf5_cpp.lib")
-#	pragma comment(lib, "hdf5_tools.lib")
+#	pragma comment(lib, "libhdf5.lib")
+//#	pragma comment(lib, "hdf5_cpp.lib")
+//#	pragma comment(lib, "hdf5_tools.lib")
 #endif
 
-namespace sayaka
-{
+SAYAKA_NS_BEGIN;
+
 
 //static const int verbose = 1;
 static const int verbose = 0;
@@ -530,5 +530,6 @@ int WriteDataHdf5(const TreeData &data,
 }
 
 
-} // namespace_sayaka
+SAYAKA_NS_END;
+
 

@@ -3,7 +3,6 @@
 
 
 
-
 enum SayakaCellStateComponents {
 	SAYAK_CELLSTATE_COMP_U,
 	SAYAK_CELLSTATE_COMP_V,

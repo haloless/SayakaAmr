@@ -18,12 +18,58 @@
 #include "SayakaBoundaryPatch.h"
 
 
-namespace sayaka 
-{
+SAYAKA_NS_BEGIN;
 
-/**
- * Interpolation for blocks from different levels
- */
+//
+// Prolong: Coarse -> Fine
+//
+class Prolongation
+{
+protected:
+	AmrTree * m_tree;
+
+public:
+	Prolongation(AmrTree &tree);
+
+	virtual void prolong(
+		int ifine, DoubleBlockData &finedata,
+		int icrse, const DoubleBlockData &crsedata,
+		const IndexBox &finebox,
+		const Vector3i &fineoffset,
+		int scomp, int ncomp) = 0;
+
+	
+};
+
+//
+// Restrict: Fine -> Coarse
+//
+class Restriction
+{
+protected:
+	AmrTree * m_tree;
+public:
+	Restriction(AmrTree &tree);
+
+	virtual void restrict(
+		int icrse, DoubleBlockData &crsedata,
+		int ifine, const DoubleBlockData &finedata,
+		const IndexBox &crsebox,
+		const Vector3i &fineoffset,
+		int scomp, int ncomp) = 0;
+};
+
+
+// 
+// Interpolation for blocks from different levels.
+// It supports various general methods.
+// 
+// Prolong (Coarse -> Fine)
+// - Direct injection
+//
+// Restrict (File -> Coarse)
+// - Average
+// 
 struct InterpPatch : public TreeDataAlgorithm
 {
 	/**
@@ -55,7 +101,10 @@ struct InterpPatch : public TreeDataAlgorithm
 
 public:
 
-	InterpPatch(AmrTree &tree_in, TreeData &data_in, VariableLocation varloc_in)
+	InterpPatch(
+		AmrTree &tree_in, 
+		TreeData &data_in, 
+		VariableLocation varloc_in)
 		: super_type(tree_in, data_in, varloc_in),
 		prolong_flag(data_in.numComp(), PROLONG_INJECTION),
 		restrict_flag(data_in.numComp(), RESTRICT_AVERAGE)
@@ -187,5 +236,5 @@ private:
 
 
 
-} // namespace_sayaka
+SAYAKA_NS_END;
 

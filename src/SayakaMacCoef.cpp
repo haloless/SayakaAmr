@@ -2,8 +2,8 @@
 #include "SayakaMacSolver.h"
 
 
-namespace sayaka 
-{
+SAYAKA_NS_BEGIN;
+
 
 void MacSolver::setDefaultCoefs() {
 	setAlpha(0.0);
@@ -76,5 +76,5 @@ void MacSolver::setCoefB(int dir, const TreeData &bdata, int srccomp)
 }
 
 
-}
+SAYAKA_NS_END;
 

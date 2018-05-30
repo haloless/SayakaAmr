@@ -11,14 +11,18 @@
 
 
 
-namespace sayaka
-{
+SAYAKA_NS_BEGIN;
+
+const int verbose = 1;
+
+int IsVerbose() { return verbose; }
 
 
+// 
 void Initialize(int argc, char *argv[]) {
 	LOGPRINTF("%s\n", __FUNCTION__);
 	return;
 }
 
 
-} // namespace sayaka
+SAYAKA_NS_END;

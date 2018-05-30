@@ -18,7 +18,8 @@
 //
 //#include "Test4.h"
 //#include "Test5.h"
-#include "Test6.h"
+//#include "Test6.h"
+#include "Test7.h"
 
 using namespace sayaka;
 
@@ -39,8 +40,11 @@ int main(int argc, char *argv[] ) {
 	//Test5 t5;
 	//t5.init(argc, argv);
 
-	Test6 t6;
-	t6.init(argc, argv);
+	//Test6 t6;
+	//t6.init(argc, argv);
+
+	Test7 t7;
+	t7.init(argc, argv);
 
 	return 0;
 }

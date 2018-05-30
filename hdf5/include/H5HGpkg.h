@@ -5,12 +5,10 @@
  *                                                                           *
  * This file is part of HDF5.  The full HDF5 copyright notice, including     *
  * terms governing use, modification, and redistribution, is contained in    *
- * the files COPYING and Copyright.html.  COPYING can be found at the root   *
- * of the source code distribution tree; Copyright.html can be found at the  *
- * root level of an installed copy of the electronic HDF5 document set and   *
- * is linked from the top-level documents page.  It can also be found at     *
- * http://hdfgroup.org/HDF5/doc/Copyright.html.  If you do not have          *
- * access to either file, you may request a copy from help@hdfgroup.org.     *
+ * the COPYING file, which can be found at the root of the source code       *
+ * distribution tree, or in https://support.hdfgroup.org/ftp/HDF5/releases.  *
+ * If you do not have access to either file, you may request a copy from     *
+ * help@hdfgroup.org.                                                        *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 /*
@@ -77,8 +75,7 @@ H5FL_BLK_EXTERN(gheap_chunk);
  * largest data type is eight bytes.
  */
 #define H5HG_ALIGNMENT	8
-#define H5HG_ALIGN(X)	(H5HG_ALIGNMENT*(((X)+H5HG_ALIGNMENT-1)/	      \
-					 H5HG_ALIGNMENT))
+#define H5HG_ALIGN(X)	(H5HG_ALIGNMENT*(((X)+H5HG_ALIGNMENT-1)/H5HG_ALIGNMENT))
 #define H5HG_ISALIGNED(X) ((X)==H5HG_ALIGN(X))
 
 /*
@@ -86,20 +83,20 @@ H5FL_BLK_EXTERN(gheap_chunk);
  * that the stuff that follows the header is aligned.
  */
 #define H5HG_SIZEOF_HDR(f)						      \
-    H5HG_ALIGN(4 +			/*magic number		*/	      \
-	       1 +			/*version number	*/	      \
-	       3 +			/*reserved		*/	      \
-	       H5F_SIZEOF_SIZE(f))	/*collection size	*/
+    (size_t)H5HG_ALIGN(4 +			/*magic number		*/ \
+                       1 +			/*version number	*/ \
+                       3 +			/*reserved		*/ \
+                       H5F_SIZEOF_SIZE(f))	/*collection size	*/
 
 /*
  * The overhead associated with each object in the heap, always a multiple of
  * the alignment so that the stuff that follows the header is aligned.
  */
 #define H5HG_SIZEOF_OBJHDR(f)						      \
-    H5HG_ALIGN(2 +			/*object id number	*/	      \
-	       2 +			/*reference count	*/	      \
-	       4 +			/*reserved		*/	      \
-	       H5F_SIZEOF_SIZE(f))	/*object data size	*/
+    (size_t)H5HG_ALIGN(2 +			/*object id number	*/ \
+                       2 +			/*reference count	*/ \
+                       4 +			/*reserved		*/ \
+                       H5F_SIZEOF_SIZE(f))	/*object data size	*/
 
 /*
  * The initial guess for the number of messages in a collection.  We assume
@@ -108,8 +105,8 @@ H5FL_BLK_EXTERN(gheap_chunk);
  * some overhead and each message has some overhead.  The `+2' accounts for
  * rounding and for the free space object.
  */
-#define H5HG_NOBJS(f,z) (int)((((z)-H5HG_SIZEOF_HDR(f))/		      \
-			       H5HG_SIZEOF_OBJHDR(f)+2))
+#define H5HG_NOBJS(f,z) ((((z)-H5HG_SIZEOF_HDR(f))/		      \
+                          H5HG_SIZEOF_OBJHDR(f)+2))
 
 
 /****************************/

@@ -3,6 +3,7 @@
 #include <cassert>
 
 #include <algorithm>
+#include <iosfwd>
 
 #include "vector3d.h"
 
@@ -11,8 +12,8 @@
 /**
  * Box-based index
  */
-namespace sayaka
-{
+
+SAYAKA_NS_BEGIN;
 
 // 
 enum VarLocType {
@@ -24,15 +25,25 @@ enum VarLocType {
 	VARLOC_NODE = (VARLOC_FACE_X*XDIM) | (VARLOC_FACE_Y*YDIM) | (VARLOC_FACE_Z*ZDIM),
 };
 
+//
 // Index type of variable
 // Specifies its position defined on a grid
+//
 struct VariableLocation
 {
-	
+protected:
 	int m_location;
 
-	VariableLocation() : m_location(VARLOC_CELL) {}
-	VariableLocation(int loc) : m_location(loc) {}
+public:
+	constexpr VariableLocation() : m_location(VARLOC_CELL) {}
+	constexpr VariableLocation(int loc) : m_location(loc) {}
+
+	int test(int dir) const {
+		assert(0 <= dir && dir < MAX_DIM);
+		return (m_location & StaggerMask(dir)) >> dir;
+	}
+
+	int operator[](int dir) const { return test(dir); }
 
 	//
 	void setStaggered(int dir) {
@@ -68,11 +79,6 @@ struct VariableLocation
 	// (1,1,0) in 2D, (1,1,1) in 3D
 	int isNodeVar() const {
 		return m_location == VARLOC_NODE;
-		//int all_stag = 1;
-		//for (int dir=0; dir<NDIM; dir++) {
-		//	all_stag = all_stag && isStaggered(dir);
-		//}
-		//return all_stag;
 	}
 
 	//
@@ -89,14 +95,19 @@ struct VariableLocation
 	//operator int&() { return m_location; }
 
 	//
-	static inline int StaggerMask(int dir) {
-		int mask = (0x1 << dir);
-		return mask;
+	static constexpr inline int StaggerMask(int dir) {
+		return (0x1 << dir);
 	}
 };
 
+// IO
+std::ostream& operator<<(std::ostream &os, const VariableLocation &varloc);
 
 
+
+//
+// Box of indices
+//
 struct IndexBox
 {
 	Vector3i vlo;
@@ -159,25 +170,23 @@ struct IndexBox
 		return sz;
 	}
 
-	int stride() const {
-		return size(0)*size(1)*size(2);
-	}
+	int stride() const { return size(0)*size(1)*size(2); }
 
-	int capacity(int ncomp=1) const { 
-		return stride() * ncomp; 
-	}
+	int capacity(int ncomp=1) const { return stride() * ncomp; }
 
 	// check if this is a valid box
 	int isValid() const {
-		return vlo.x<=vhi.x && vlo.y<=vhi.y && vlo.z<=vhi.z;
+		return vlo.allLE(vhi);
+		//return vlo.x<=vhi.x && vlo.y<=vhi.y && vlo.z<=vhi.z;
 	}
 	// check if covers target box
 	int contains(const IndexBox &b) const {
 		// they must be of the same index type
 		assert(this->type() == b.type());
 
-		return vlo.x<=b.vlo.x && vlo.y<=b.vlo.y && vlo.z<=b.vlo.z &&
-			vhi.x>=b.vhi.x && vhi.y>=b.vhi.y && vhi.z>=b.vhi.z;
+		return vlo.allLE(b.vlo) && vhi.allGE(b.vhi);
+		//return vlo.x<=b.vlo.x && vlo.y<=b.vlo.y && vlo.z<=b.vlo.z &&
+		//	vhi.x>=b.vhi.x && vhi.y>=b.vhi.y && vhi.z>=b.vhi.z;
 	}
 	//// check if larger in specified direction
 	//int isLarger(const IndexBox &b, int dir) const {
@@ -261,13 +270,12 @@ struct IndexBox
 		extendInFace(dir, 1, ngrow);
 		return *this;
 	}
-	IndexBox& extendLow(int dir, int ngrow) {
-		return extendInFace(dir, 0, ngrow);
-	}
-	IndexBox& extendHigh(int dir, int ngrow) {
-		return extendInFace(dir, 1, ngrow);
-	}
+	
+	IndexBox& extendLo(int dir, int ngrow) { return extendInFace(dir, 0, ngrow); }
+	IndexBox& extendHi(int dir, int ngrow) { return extendInFace(dir, 1, ngrow); }
 
+	IndexBox& shrinkLo(int dir, int ng) { return extendInFace(dir, 0, -ng); }
+	IndexBox& shrinkHi(int dir, int ng) { return extendInFace(dir, 1, -ng); }
 
 	//
 	IndexBox& stagger(int istag, int jstag, int kstag) {
@@ -337,63 +345,28 @@ struct IndexBox
 	int isNodeBox() const { return varloc.isNodeVar(); }
 	int isStaggeredBox(int dir) const { return varloc.isStaggered(dir); }
 
+	// intersection
+	IndexBox operator&(const IndexBox &rhs) const {
+		return Intersection(*this, rhs);
+	}
+
+
+public:
+
+	// return intersection of two boxes
+	static IndexBox Intersection(const IndexBox &a, const IndexBox &b);
+
+	// return a new box by extending
+	static IndexBox Extend(const IndexBox &a, int ngrow);
 
 	//
-	static inline IndexBox Intersection(const IndexBox &a, const IndexBox &b) {
-		assert(a.type() == b.type());
-		int ilo = std::max(a.ilo(), b.ilo());
-		int jlo = std::max(a.jlo(), b.jlo());
-		int klo = std::max(a.klo(), b.klo());
-		int ihi = std::min(a.ihi(), b.ihi());
-		int jhi = std::min(a.jhi(), b.jhi());
-		int khi = std::min(a.khi(), b.khi());
-		
-		Vector3i vlo = Vector3i::VecMake(ilo, jlo, klo);
-		Vector3i vhi = Vector3i::VecMake(ihi, jhi, khi);
-		IndexBox c(vlo, vhi, a.type());
-		return c;
-	}
-	static inline IndexBox Extend(const IndexBox &a, int ngrow) {
-		IndexBox b(a);
-		b.extend(ngrow);
-		return b;
-	}
-	static inline IndexBox Stagger(const IndexBox &cellbox, int dir) {
-		assert(cellbox.isCellBox());
-		IndexBox facebox(cellbox);
-		facebox.staggerInDir(dir);
-		return facebox;
-	}
+	static IndexBox Stagger(const IndexBox &cellbox, int dir);
 	
 	// Extract the one-layer slice inside the box most close to the face
-	static inline IndexBox AdjacentFace(const IndexBox &box, int dir, int side) {
-		assert(0<=dir && dir<NDIM);
-		assert(0<=side && side<=1);
-		IndexBox bface = box;
-		if (side == 0) { // low face, collapse high end
-			bface.vhi(dir) = bface.vlo(dir);
-		} else { // high face, collapse low end
-			bface.vlo(dir) = bface.vhi(dir);
-		}
-		return bface;
-	}
+	static IndexBox AdjacentFace(const IndexBox &box, int dir, int side);
+
 	// Extract the one-layer slice on the box face (i.e. face-centered)
-	static inline IndexBox BoundaryFace(const IndexBox &box, int dir, int side) {
-		assert(0<=dir && dir<NDIM);
-		assert(0<=side && side<=1);
-		
-		IndexBox bface = box;
-		// enforce staggered in face direction
-		bface.staggerInDir(dir);
-
-		if (side == 0) { // low face, collapse high end
-			bface.vhi(dir) = bface.vlo(dir);
-		} else { // high face, collapse low end
-			bface.vlo(dir) = bface.vhi(dir);
-		}
-
-		return bface;
-	}
+	static IndexBox BoundaryFace(const IndexBox &box, int dir, int side);
 };
 
 inline bool operator==(const IndexBox &b0, const IndexBox &b1) {
@@ -402,6 +375,9 @@ inline bool operator==(const IndexBox &b0, const IndexBox &b1) {
 inline bool operator!=(const IndexBox &b0, const IndexBox &b1) {
 	return !(b0==b1);
 }
+
+// IO
+std::ostream& operator<<(std::ostream &os, const IndexBox &box);
 
 
 // Macro used to completely tranverse a box
@@ -420,6 +396,21 @@ inline bool operator!=(const IndexBox &b0, const IndexBox &b1) {
 	decl_box_range_j(box,j); \
 	decl_box_range_k(box,k);
 
+#define BEGIN_FOR_BOX_RANGE(box, ii,jj,kk) {\
+const int ii##lo = box.ilo(); const int ii##hi = box.ihi(); \
+const int jj##lo = box.jlo(); const int jj##hi = box.jhi(); \
+const int kk##lo = box.klo(); const int kk##hi = box.khi(); \
+for (int kk=kk##lo; kk<=kk##hi; ++kk) {\
+for (int jj=jj##lo; jj<=jj##hi; ++jj) {\
+for (int ii=ii##lo; ii<=ii##hi; ++ii) {\
+
+#define END_FOR_BOX_RANGE }}}}
+
+
+
+//
+// Physical box region
+//
 struct RealBox
 {
 	Vector3d vlo;
@@ -436,6 +427,16 @@ struct RealBox
 		vlo = inlo;
 		vhi = inhi;
 	}
+	RealBox(const double xlo[], const double xhi[]) 
+	{
+		vlo.setZero();
+		vhi.setZero();
+		for (int dir = 0; dir < NDIM; dir++) {
+			vlo(dir) = xlo[dir];
+			vhi(dir) = xhi[dir];
+		}
+	}
+
 
 	const Vector3d& lo() const { return vlo; }
 	const Vector3d& hi() const { return vhi; }
@@ -456,10 +457,12 @@ struct RealBox
 	}
 }; // struct_realbox
 
+// IO
+std::ostream& operator<<(std::ostream &os, const RealBox &rb);
 
 
-} // namespace_sayaka
 
+SAYAKA_NS_END;
 
 
 

@@ -8,16 +8,14 @@
 // TODO remove this dependency??
 #include "SayakaInterpPatch.h"
 
-namespace sayaka
-{
+SAYAKA_NS_BEGIN;
 
-
-/**
- * Treatment of ghost cells enclosing blocks, including
- * (a) internal in-level boundary 
- * (b) fine/coarse boundary
- * (c) physical boundary
- */
+// 
+// Treatment of ghost cells enclosing blocks, including:
+// (a) internal in-level boundary 
+// (b) fine/coarse boundary
+// (c) physical boundary
+// 
 struct FillPatch : public InterpPatch
 {
 	/*
@@ -63,7 +61,7 @@ struct FillPatch : public InterpPatch
 
 	typedef InterpPatch super_type;
 
-	BoundaryConditionPatch *bc_patch;
+	BCPatch *bc_patch;
 
 	// pre-build boundary range
 	std::vector<FillPatchRange> range_cache;
@@ -74,11 +72,12 @@ struct FillPatch : public InterpPatch
 public:
 	
 	// deprecated
+	__declspec(deprecated)
 	FillPatch(AmrTree &tree_in, 
 		TreeData &data_in, 
 		VariableLocation varloc_in)
 		: super_type(tree_in, data_in, varloc_in), 
-		bc_patch(NULL)
+		bc_patch(nullptr)
 	{
 		LOGPRINTF("%s: deprecated\n", __FUNCTION__);
 		exit(1);
@@ -86,7 +85,7 @@ public:
 
 	FillPatch(AmrTree &tree_in, TreeData &data_in)
 		: super_type(tree_in, data_in, data_in.validBox().type()),
-		bc_patch(NULL)
+		bc_patch(nullptr)
 	{
 		// possible fill-patch band width
 		const int nlayer_max = data_in.numGrow();
@@ -97,18 +96,29 @@ public:
 		cacheRanges(nlayer_max);
 	}
 
+	void setBC(BCPatch &bc) {
+		bc_patch = &bc;
+	}
 
-
+	//
 	// Fill ghost cells for
 	// in-level, physical
+	//
 	void fillBoundary(int scomp, int ncomp, int nlayer);
 
+	//
 	// Fill blocks in specified level only
 	// NOTE this must be called from coarse level to fine level
+	//
 	void fillLevelBoundary(int level, int scomp, int ncomp, int nlayer,
 		int onlySameLevel=0, int applyPhysBC=1, int fillCorner=1);
 
-	// Fill given block
+	//
+	// Fill given block.
+	// (1) in-level block/block boundary
+	// (2) coarser-level boundary
+	// (3) physical boundary
+	// 
 	void fillBlockBoundary(int iblock, int scomp, int ncomp, int nlayer,
 		int onlySameLevel=0, int applyPhysBC=1, int fillCorner=1);
 
@@ -208,6 +218,6 @@ protected:
 
 
 
-} // namespace_sayaka
+SAYAKA_NS_END;
 
 

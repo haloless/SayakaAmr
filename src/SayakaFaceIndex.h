@@ -1,11 +1,11 @@
 #pragma once
 
 #include <cassert>
+#include <iosfwd>
 
 #include "SayakaCommons.h"
 
-namespace sayaka
-{
+SAYAKA_NS_BEGIN;
 
 struct BlockFaceIndex
 {
@@ -52,8 +52,11 @@ struct BlockFaceIndex
 
 typedef BlockFaceIndex FaceIndex;
 
+// IO
+std::ostream& operator<<(std::ostream& os, const FaceIndex &iface);
 
-} // namespace_sayaka
 
+
+SAYAKA_NS_END;
 
 

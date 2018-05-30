@@ -14,9 +14,7 @@
 #include "SayakaFillPatch.h"
 
 
-namespace sayaka
-{
-
+SAYAKA_NS_BEGIN;
 
 void FillPatch::fillBoundary(int scomp, int ncomp, int nlayer)
 {
@@ -328,7 +326,11 @@ void FillPatch::fillBlockBndryCond(
 	int basedir = 0;
 	if (tree_data.isCellData()) {
 		basedir = 0;
-	} else {
+	} 
+	//else if (tree_data.isFaceData()) {
+	//	//basedir = tree_data.getFaceDataDir();
+	//}
+	else {
 		LOGPRINTF("%s: cell-centered data only\n", __FUNCTION__);
 		exit(1);
 	}
@@ -421,7 +423,7 @@ void FillPatch::restrictBlock(int iblock, int scomp, int ncomp) {
 	const AmrTreeNode &block = tree[iblock];
 
 	// perform restriction by looping its children
-	for (ChildIndex ichild=0; ichild<ChildIndex::NumChild; ichild++) {
+	for (ChildIndex ichild=0; ichild<ChildIndex::NumChild; ++ichild) {
 		//
 		const int jblock = block.child[ichild];
 		assert(jblock >= 0);
@@ -694,12 +696,12 @@ void FillPatch::cacheRanges(int nlayer_max) {
 
 						if (ijk == -1) {
 							// at low side, shrink high end
-							range.dstNonOverlapRanges[isurr].extendHigh(dir, -1);
-							range.srcNonOverlapRanges[isurr].extendHigh(dir, -1);
+							range.dstNonOverlapRanges[isurr].extendHi(dir, -1);
+							range.srcNonOverlapRanges[isurr].extendHi(dir, -1);
 						} else if (ijk == 1) {
 							// at high side, shrink low end
-							range.dstNonOverlapRanges[isurr].extendLow(dir, -1);
-							range.srcNonOverlapRanges[isurr].extendLow(dir, -1);
+							range.dstNonOverlapRanges[isurr].extendLo(dir, -1);
+							range.srcNonOverlapRanges[isurr].extendLo(dir, -1);
 						}
 
 						assert(range.dstNonOverlapRanges[isurr].isValid());
@@ -725,5 +727,6 @@ void FillPatch::cacheOffsets() {
 	}
 }
 
-} // namespace_sayaka
+SAYAKA_NS_END;
+
 

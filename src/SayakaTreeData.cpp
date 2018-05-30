@@ -3,8 +3,130 @@
 
 
 
-namespace sayaka
+SAYAKA_NS_BEGIN;
+
+
+
+// construct empty undefined data
+TreeData::TreeData()
+	: m_tree(nullptr)
+	, m_numGrow(0)
+	, m_numComp(0)
+	, m_data(nullptr)
 {
+	// nothing
+}
+
+// construct by TREE and BOX
+TreeData::TreeData(
+	AmrTree & tree, 
+	const IndexBox & validBox, 
+	const IndexBox & indexBox, 
+	int ngrow, int ncomp)
+	: m_tree(&tree),
+	m_validBox(validBox),
+	m_indexBox(indexBox),
+	m_numGrow(ngrow),
+	m_numComp(ncomp),
+	m_data(nullptr)
+{
+	assert(validBox.type() == indexBox.type());
+
+	const int maxblock = tree.maxBlockNum;
+	allocData(maxblock);
+}
+
+// copy
+TreeData::TreeData(const TreeData & src)
+	: m_tree(src.m_tree),
+	m_validBox(src.m_validBox),
+	m_indexBox(src.m_indexBox),
+	m_numComp(src.m_numComp),
+	m_numGrow(src.m_numGrow),
+	m_data(nullptr)
+{
+	const int maxblock = m_tree->maxBlockNum;
+	allocData(maxblock);
+
+	copyValue(src);
+}
+
+// move
+TreeData::TreeData(TreeData && src)
+	: m_tree(src.m_tree)
+	, m_validBox(std::move(src.m_validBox))
+	, m_indexBox(std::move(src.m_indexBox))
+	, m_numComp(src.m_numComp)
+	, m_numGrow(src.m_numGrow)
+	, m_data(nullptr)
+{
+	this->swapValue(src);
+}
+
+// destroy
+TreeData::~TreeData()
+{
+	freeData();
+}
+
+void TreeData::define(
+	AmrTree & tree, 
+	const IndexBox & validBox, 
+	const IndexBox & indexBox, 
+	int ngrow, int ncomp)
+{
+	// release existing data first
+	freeData();
+
+	// set new structure
+	m_tree = &tree;
+	m_validBox = validBox;
+	m_indexBox = indexBox;
+	m_numComp = ncomp;
+	m_numGrow = ngrow;
+
+	allocData(m_tree->maxBlockNum);
+}
+
+TreeData & TreeData::operator=(TreeData && src)
+{
+	freeData();
+
+	m_tree = src.m_tree;
+	m_validBox = std::move(src.m_validBox);
+	m_indexBox = std::move(src.m_indexBox);
+	m_numComp = src.m_numComp;
+	m_numGrow = src.m_numGrow;
+
+	this->swapValue(src);
+
+	return *this;
+}
+
+// allocate data blocks
+// actual data buffer is allocated as a whole chunk
+// and divided to each block
+void TreeData::allocData(int maxblock) {
+
+	const int stride = m_indexBox.capacity(m_numComp);
+	m_buf.resize(stride * maxblock);
+
+	auto * ptr = m_buf.data();
+
+	m_data = new DoubleBlockData[maxblock];
+	for (int i = 0; i<maxblock; i++) {
+		//m_data[i].reset(m_indexBox, m_numComp);
+		m_data[i].reset(m_indexBox, m_numComp, ptr);
+		ptr += stride;
+	}
+}
+
+void TreeData::freeData() {
+	if (m_data) {
+		delete[] m_data;
+		m_data = nullptr;
+	}
+}
 
 //
 TreeData* TreeData::CreateCellData(const AmrTree &tree, int ncomp, int ngrow) {
@@ -63,6 +185,45 @@ void TreeData::ReleaseDataPArray(std::vector<TreeData*> &parray, bool clear_arra
 	if (clear_array) {
 		parray.clear();
 	}
+}
+
+TreeData TreeData::MakeCellData(const AmrTree & tree, int ncomp, int ngrow)
+{
+	const IndexBox &validbox = tree.validBlockCellBox();
+
+	IndexBox grownbox = validbox;
+	grownbox.extend(ngrow);
+	
+	return TreeData(const_cast<AmrTree&>(tree), 
+		validbox, grownbox, ngrow, ncomp);
+}
+
+TreeData TreeData::MakeFaceData(const AmrTree & tree, int dir, int ncomp, int ngrow)
+{
+	const IndexBox &cellbox = tree.validBlockCellBox();
+
+	IndexBox facebox = cellbox;
+	facebox.staggerInDir(dir);
+
+	IndexBox grownbox = facebox;
+	grownbox.extend(ngrow);
+
+	return TreeData(const_cast<AmrTree&>(tree), 
+		facebox, grownbox, ngrow, ncomp);
+}
+
+TreeData TreeData::MakeNodeData(const AmrTree & tree, int ncomp, int ngrow)
+{
+	const IndexBox &cellbox = tree.validBlockCellBox();
+
+	IndexBox nodebox = cellbox;
+	nodebox.staggerAll();
+
+	IndexBox grownbox = nodebox;
+	grownbox.extend(ngrow);
+
+	return TreeData(const_cast<AmrTree&>(tree), 
+		nodebox, grownbox, ngrow, ncomp);
 }
 
 
@@ -477,5 +638,6 @@ void TreeData::writeBlockZone(FILE *fp,
 
 
 
-} // namespace_sayaka
+SAYAKA_NS_END;
+
 

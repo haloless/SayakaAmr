@@ -7,6 +7,8 @@
 #	define SAYAKA_USE_VTK
 #endif
 
+#undef SAYAKA_USE_VTK
+
 #ifdef SAYAKA_USE_VTK
 // our helper header
 #	define VTKHELPER_LINKER_PRAGMA

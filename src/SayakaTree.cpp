@@ -14,8 +14,7 @@
 #include "SayakaTreeData.h"
 
 
-namespace sayaka 
-{
+SAYAKA_NS_BEGIN;
 
 
 void TreeStateData::swapTimeStates() {
@@ -90,6 +89,116 @@ void AmrTree::init() {
 	}
 
 } // amrtree_init
+
+void AmrTree::initUniformRootLevel(
+	const Vector3i &ndiv,
+	const RealBox &probbox,
+	const int bc_type[MAX_FACE],
+	const bool is_periodic[MAX_FACE])
+{
+	const int root_level = 1; // 
+
+	const int n0x = ndiv(0);
+	const int n0y = ndiv(1);
+	const int n0z = ndiv(2);
+	const int nroot = n0x * n0y * n0z;
+
+	// define indexing
+	auto ind = [=](int i, int j, int k) {
+		return i + j * n0x + k * n0x * n0y;
+	};
+
+	this->numBlocks = nroot;
+
+	for (int k = 0; k<n0z; k++) {
+		for (int j = 0; j<n0y; j++) {
+			for (int i = 0; i<n0x; i++) {
+				// grab a node
+				int iroot = ind(i, j, k);
+				AmrTreeNode &root = this->blocks[iroot];
+
+				// set physical size
+				Vector3d block_lo = probbox.lo();
+				Vector3d block_hi = probbox.lo();
+				block_lo.x += probbox.length(0) / n0x * i;
+				block_hi.x += probbox.length(0) / n0x * (i + 1);
+				block_lo.y += probbox.length(1) / n0y * j;
+				block_hi.y += probbox.length(1) / n0y * (j + 1);
+				if (NDIM == 3) {
+					block_lo.z += probbox.length(2) / n0z * k;
+					block_hi.z += probbox.length(2) / n0z * (k + 1);
+				}
+
+				RealBox rootbox(block_lo, block_hi);
+				root.boundBox = rootbox;
+				root.blockCenter = rootbox.center();
+				root.blockLength = rootbox.length();
+
+				// set info
+				root.nodeType = TreeNodeType_IsLeaf;
+				root.setLevel(root_level);
+
+				// set connections and BC
+				for (FaceIndex iface = 0; iface<FaceIndex::NumFace; iface++) {
+					int ineigh = -1;
+
+					if (iface == FaceIndex::FACE_XMINUS) {
+						if (i == 0) {
+							ineigh = is_periodic[iface] ? ind(n0x - 1, j, k) : bc_type[iface];
+						}
+						else {
+							ineigh = ind(i - 1, j, k);
+						}
+					}
+					else if (iface == FaceIndex::FACE_XPLUS) {
+						if (i == n0x - 1) {
+							ineigh = is_periodic[iface] ? ind(0, j, k) : bc_type[iface];
+						}
+						else {
+							ineigh = ind(i + 1, j, k);
+						}
+					}
+					else if (iface == FaceIndex::FACE_YMINUS) {
+						if (j == 0) {
+							ineigh = is_periodic[iface] ? ind(i, n0y - 1, k) : bc_type[iface];
+						}
+						else {
+							ineigh = ind(i, j - 1, k);
+						}
+					}
+					else if (iface == FaceIndex::FACE_YPLUS) {
+						if (j == n0y - 1) {
+							ineigh = is_periodic[iface] ? ind(i, 0, k) : bc_type[iface];
+						}
+						else {
+							ineigh = ind(i, j + 1, k);
+						}
+					}
+					else if (iface == FaceIndex::FACE_ZMINUS) {
+						if (k == 0) {
+							ineigh = is_periodic[iface] ? ind(i, j, n0z - 1) : bc_type[iface];
+						}
+						else {
+							ineigh = ind(i, j, k - 1);
+						}
+					}
+					else if (iface == FaceIndex::FACE_ZPLUS) {
+						if (k == n0z - 1) {
+							ineigh = is_periodic[iface] ? ind(i, j, 0) : bc_type[iface];
+						}
+						else {
+							ineigh = ind(i, j, k + 1);
+						}
+					}
+
+					//assert(0<=ineigh && ineigh<n0x*n0y*n0z);
+					root.neighbor[iface] = ineigh;
+
+				} // end loop face
+			}
+		}
+	}
+}
 
 
 void AmrTree::initRefineToMinLevel() {
@@ -247,4 +356,5 @@ int AmrTree::writeTreeLeafBlockGrid(const char *filename, int step, double time)
 
 
 
-} // namespace sayaka
+SAYAKA_NS_END;
+

@@ -4,70 +4,101 @@
 #include "SayakaBox.h"
 
 
-namespace sayaka
-{
-
+SAYAKA_NS_BEGIN;
 
 /**
  * Single-grid data used as building-blocks for AMR
  */
 template<typename T>
-struct GridData
+class GridData
 {
+protected:
+
 	IndexBox m_box;
 	int m_ncomp;
 	T *m_data;
+	bool m_manage;
+
+	static std::allocator<T> alloc;
 
 public:
 	//typedef T data_t;
 
+	// create undefined, unmanaged
 	GridData()
-		: m_ncomp(0), m_data(NULL)
+		: m_ncomp(0), m_data(nullptr), m_manage(false)
 	{}
 
-	GridData(const IndexBox &inbox, int ncomp=1)
+	// build by box, managed
+	GridData(const IndexBox &inbox, int ncomp = 1)
 		: m_box(inbox),
 		m_ncomp(ncomp),
-		m_data(NULL)
+		m_data(nullptr),
+		m_manage(true)
 	{
 		assert(ncomp>=1);
 
-		// allocate data
-		const int len = m_box.capacity(ncomp);
-		m_data = new T[len];
+		allocData();
 	}
 
-	// copy
+	// build, unmanaged
+	GridData(const IndexBox &box, T *data, int ncomp = 1) 
+		: m_box(box)
+		, m_ncomp(ncomp)
+		, m_data(data)
+		, m_manage(false)
+	{
+		assert(ncomp >= 1);
+	}
+
+	// copy, managed
 	GridData(const GridData & src) 
 		: m_box(src.box()),
 		m_ncomp(src.ncomp()),
-		m_data(NULL)
+		m_data(nullptr),
+		m_manage(true)
 	{
-		// allocate data
-		const int len = m_box.capacity(m_ncomp);
-		m_data = new T[len];
+		allocData();
 
 		setValue(src);
 	}
 
-	~GridData()
+	// move, depends on the source 
+	GridData(GridData &&rhs)
+		: m_box(std::move(rhs.box()))
+		, m_ncomp(rhs.ncomp())
+		, m_data(nullptr)
+		, m_manage(false)
 	{
-		if (m_data) {
-			delete[] m_data;
-			m_data = NULL;
-		}
+		// steal data
+		swapData(rhs);
 	}
 
-	//
+	~GridData()
+	{
+		freeData();
+	}
+
+	// reset, managed
 	void reset(const IndexBox &box, int ncomp) {
+		freeData();
+
 		m_box = box;
 		m_ncomp = ncomp;
-		if (m_data) {
-			delete[] m_data;
-			m_data = NULL;
-		}
-		const int size = box.capacity(ncomp);
-		m_data = new T[size];
+
+		m_manage = true;
+		allocData();
+	}
+
+	// reset, unmanaged
+	void reset(const IndexBox &box, int ncomp, T *data) {
+		freeData();
+
+		m_box = box;
+		m_ncomp = ncomp;
+
+		m_manage = false;
+		m_data = data;
 	}
 
 	//
@@ -76,13 +107,13 @@ public:
 	int ncomp() const { return m_ncomp; }
 	const IndexBox& box() const { return m_box; }
 	
-	//
-	const T* data(int comp=0) const { 
-		return m_data + m_box.stride()*comp; 
-	}
-	T* data(int comp=0) { 
-		return m_data + m_box.stride()*comp; 
-	}
+	// data pointer
+	const T* data() const { return m_data; }
+	T* data() { return m_data; }
+
+	// data pointer to component
+	const T* data(int comp) const { return m_data + m_box.stride()*comp; }
+	T* data(int comp) { return m_data + m_box.stride()*comp; }
 
 
 	// index-based 
@@ -158,7 +189,33 @@ public:
 		}
 	}
 
+protected:
+
+	void allocData() {
+		if (m_manage) {
+			auto len = m_box.capacity(m_ncomp);
+			m_data = alloc.allocate(len);
+			//m_data = new T[len];
+		}
+	}
+
+	void freeData() {
+		if (m_manage && m_data) {
+			//delete[] m_data;
+			alloc.deallocate(m_data, m_box.capacity(m_ncomp));
+			m_data = nullptr;
+		}
+	}
+
+	void swapData(GridData &rhs) {
+		std::swap(m_data, rhs.m_data);
+		std::swap(m_manage, rhs.m_manage);
+	}
+
 }; // struct_griddata<T>
+
+template<typename T>
+std::allocator<T> GridData<T>::alloc;
 
 
 /**
@@ -256,7 +313,5 @@ extern GridDataUtil<int> IntGridDataUtil;
 
 
 
-
-} // namespace_sayaka
-
+SAYAKA_NS_END;
 

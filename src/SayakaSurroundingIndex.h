@@ -5,9 +5,7 @@
 #include "SayakaCommons.h"
 #include "SayakaFaceIndex.h"
 
-namespace sayaka
-{
-
+SAYAKA_NS_BEGIN;
 
 /**
  * block 3x3x3
@@ -15,10 +13,10 @@ namespace sayaka
 struct SurroundingIndex
 {
 	enum {
-		NxSurr = XDIM*2+1,
-		NySurr = YDIM*2+1,
-		NzSurr = ZDIM*2+1,
-		NumSurr = NxSurr*NySurr*NzSurr,
+		NxSurr = XDIM * 2 + 1,
+		NySurr = YDIM * 2 + 1,
+		NzSurr = ZDIM * 2 + 1,
+		NumSurr = NxSurr * NySurr * NzSurr,
 
 		PosLow = -1,
 		PosMid = 0,
@@ -117,18 +115,8 @@ struct SurroundingIndex
 	operator int&() { return m_index; }
 
 	// surrounding connected to given face
-	static inline SurroundingIndex FaceSurrounding(const FaceIndex &face)
-	{
-		int dir = face.dir();
-		int side = face.side();
+	static SurroundingIndex FaceSurrounding(const FaceIndex &face);
 
-		int pos[MAX_DIM] = { 0 };
-		pos[dir] = 2*side - 1;
-		assert(pos[dir]==-1 || pos[dir]==1);
-
-		SurroundingIndex face_surr(pos[0], pos[1], pos[2]);
-		return face_surr;
-	}
 }; // struct_surroundingindex
 
 
@@ -136,8 +124,6 @@ struct SurroundingIndex
 
 
 
-
-} // namespace_sayaka
-
+SAYAKA_NS_END;
 
 

@@ -3,6 +3,7 @@
 #include <cmath>
 
 #include <iostream>
+#include <memory>
 
 #include "log.h"
 #include "vector3d.h"
@@ -19,13 +20,12 @@
 
 using namespace sayaka;
 
-
+#define TESTDIR(path) ("test6" path)
 
 /**
  * Droplet (or bubble) 
  * with variable density and IB plane
  */
-#define TESTDIR(path) ("test6" path)
 class Test6
 {
 	enum {
@@ -64,7 +64,7 @@ class Test6
 
 	AmrTree *m_tree;
 	TreeData *m_data;
-	BoundaryConditionPatch *m_bcpatch;
+	BCPatch *m_bcpatch;
 	FillPatch *m_fillpatch;
 	TreeStateData *m_state;
 
@@ -84,6 +84,7 @@ class Test6
 	Vector3d probmin, probmax;
 	RealBox probbox;
 	int probbc[NDIM*2];
+	bool probperiodic[NDIM * 2];
 
 	int probtype;
 	bool prob_use_shape;
@@ -109,8 +110,8 @@ public:
 		m_step = 0;
 		m_time = 0;
 
-		probmin = Vector3d::VecMake(-0.5, -0.5, 0.0);
-		probmax = Vector3d::VecMake(0.5, 0.5, 0.0);
+		probmin = { -0.5, -0.5, 0.0 };
+		probmax = { 0.5, 0.5, 0.0 };
 		if (NDIM == 3) {
 			probmin.z = -0.5;
 			probmax.z = 0.5;
@@ -135,6 +136,7 @@ public:
 			//probbc[face] = PhysBC_Periodic;
 			//probbc[face] = PhysBC_Symmetry;
 			probbc[face] = PhysBC_Fixed;
+			probperiodic[face] = false;
 		}
 
 		//
@@ -164,8 +166,8 @@ public:
 		ngz = NDIM<2 ? 0 : ng;
 
 		validBox = IndexBox(
-			Vector3i::VecMake(0,0,0),
-			Vector3i::VecMake(nbx-1,nby-1,nbz-1));
+			{ 0, 0, 0 },
+			{ nbx - 1, nby - 1, nbz - 1 });
 		grownBox = IndexBox(
 			IndexBox(validBox).extend(ngx,ngy,ngz));
 
@@ -250,7 +252,7 @@ public:
 
 		// solving...
 		if (1) { 
-			std::auto_ptr<MacSolver> mac_op(new MacSolver(*m_tree));
+			std::unique_ptr<MacSolver> mac_op(new MacSolver(*m_tree));
 			mac_op->setVerbose(1);
 
 			mac_op->prepareSolver();
@@ -407,7 +409,7 @@ public:
 			cellmeta.name[Comp_LS] = "ls";
 			cellmeta.name[Comp_IB] = "sdf";
 			cellmeta.name[Comp_Exact] = "pexact";
-			WriteLeafDataVtk(*m_data, TESTDIR("/cell_leaf_sol.vtu"), cellmeta);
+			//WriteLeafDataVtk(*m_data, TESTDIR("/cell_leaf_sol.vtu"), cellmeta);
 			WriteDataHdf5(*m_data, TESTDIR("/cell_leaf_sol.h5"), cellmeta);
 
 			WriterMeta nodemeta;
@@ -434,7 +436,7 @@ protected:
 		// allocate memory
 		m_tree->init();
 
-		{ // setup root level
+		if (0) { // setup root level
 			const int root_level = 1;
 			const int nroot = n0x * n0y * n0z;
 
@@ -532,6 +534,9 @@ protected:
 			}
 			}
 		}
+		else {
+			m_tree->initUniformRootLevel({ n0x,n0y,n0z }, probbox, probbc, probperiodic);
+		}
 
 		// static refine up to min level
 		m_tree->initRefineToMinLevel();
@@ -591,7 +596,7 @@ protected:
 	}
 
 	void init_patch() {
-		m_bcpatch = new BoundaryConditionPatch(*m_tree, *m_data, VARLOC_CELL);
+		m_bcpatch = new BCPatch(*m_tree, *m_data, VARLOC_CELL);
 		for (int comp=0; comp<NumComp; comp++) {
 			BCRegister& bcreg = m_bcpatch->boundaryRegister(comp);
 			for (SurroundingIndex isurr=0; isurr<SurroundingIndex::NumSurr; isurr++) {
@@ -600,12 +605,12 @@ protected:
 				int kpos = isurr.kpos();
 
 				if (comp == Comp_Phi) {
-					bcreg.setBCMap(ipos, jpos, kpos, PhysBC_Fixed, BCType_Dirichlet);
-					bcreg.setBCVal(ipos,jpos,kpos, PhysBC_Fixed, 10.0);
-					bcreg.setBCMap(ipos, jpos, kpos, PhysBC_Symmetry, BCType_Neumann);
+					bcreg.setBCMap(ipos, jpos, kpos, PhysBC_Fixed, Dirichlet);
+					bcreg.setBCVal(ipos, jpos, kpos, PhysBC_Fixed, 10.0);
+					bcreg.setBCMap(ipos, jpos, kpos, PhysBC_Symmetry, Neumann);
 				} else {
-					bcreg.setBCMap(ipos, jpos, kpos, PhysBC_Symmetry, BCType_Neumann);
-					bcreg.setBCMap(ipos, jpos, kpos, PhysBC_Fixed, BCType_Neumann);
+					bcreg.setBCMap(ipos, jpos, kpos, PhysBC_Symmetry, Neumann);
+					bcreg.setBCMap(ipos, jpos, kpos, PhysBC_Fixed, Neumann);
 				}
 			}
 		}
@@ -743,7 +748,7 @@ protected:
 				double y = blo.y + ((double) j + 0.5) * dh.y;
 				double x = blo.x + ((double) i + 0.5) * dh.x;
 
-				Vector3d pt = Vector3d::VecMake(x, y, z);
+				Vector3d pt { x, y, z };
 				
 				// interface LS
 				double val = test_ls_sign(pt);

@@ -5,10 +5,15 @@
 #include "SayakaFaceIndex.h"
 #include "SayakaBox.h"
 
-namespace sayaka
-{
+#include <utility>
+#include <tuple>
+#include <iosfwd>
 
+SAYAKA_NS_BEGIN;
 
+//
+// Index of 4(2D) or 8(3D) child nodes.
+//
 struct TreeChildIndex
 {
 	enum {
@@ -21,6 +26,8 @@ struct TreeChildIndex
 	};
 
 	int m_index;
+
+public:
 
 	TreeChildIndex(int index)
 		: m_index(index)
@@ -35,7 +42,9 @@ struct TreeChildIndex
 		assert(0<=kside && kside<2);
 	}
 
-	// conversion
+	TreeChildIndex(const TreeChildIndex &rhs) = default;
+
+	// conversion to integer, allows direct indexing
 	operator int() const { return m_index; }
 	// allows ++
 	operator int&() { return m_index; }
@@ -67,9 +76,12 @@ struct TreeChildIndex
 		return TreeChildIndex(ijk[0], ijk[1], ijk[2]);
 	}
 	
+	//
 	// isSameBlock will be TRUE if the neighbor is in-block sibling.
 	// Otherwise the neighbor is a child from adjacent block.
+	//
 	TreeChildIndex neighbor(int iface, bool &isSameBlock) const;
+
 	TreeChildIndex neighbor(int idir, int iside, bool &isSameBlock) const {
 		assert(0<=idir && idir<MAX_DIM);
 		assert(0<=iside && iside<2);
@@ -78,66 +90,38 @@ struct TreeChildIndex
 		return neighbor(iface, isSameBlock);
 	}
 
-	//
-	static inline RealBox ChildBoundBox(
+	//auto neighbor(int iface) const {
+	//	bool isSameBlock;
+	//	TreeChildIndex ichild = neighbor(iface, isSameBlock);
+	//	return std::make_tuple(ichild, isSameBlock);
+	//}
+
+	// BoundBox of child node
+	static RealBox ChildBoundBox(
 		const RealBox &parentBox, 
-		const TreeChildIndex &ichild) 
-	{
-		RealBox childBox = parentBox;
-		for (int dir=0; dir<NDIM; dir++) {
-			if (ichild.side(dir) == 0) {
-				childBox.vhi(dir) = parentBox.center(dir);
-			} else {
-				childBox.vlo(dir) = parentBox.center(dir);
-			}
-		}
-		return childBox;
-	}
-	static inline Vector3i ChildIndexOffset(
+		const TreeChildIndex &ichild);
+
+	// Offset of index of child in terms of parent box
+	static Vector3i ChildIndexOffset(
 		const IndexBox &parentBox,
-		const TreeChildIndex &ichild)
-	{		
-		Vector3i voffset; 
-		voffset.setZero();
+		const TreeChildIndex &ichild);
 
-		for (int dir=0; dir<NDIM; dir++) {
+	// Box of child 
+	static IndexBox ChildSubIndexRange(
+		const IndexBox &parentBox, const TreeChildIndex &ichild);
 
-			int side = ichild.side(dir);
-			int nb = parentBox.size(dir);
-			// currently only even block division is allowed
-			assert(nb%2 == 0);
 
-			voffset(dir) = side * (nb/2);
-		}
-
-		return voffset;
-	}
-	static inline IndexBox ChildSubIndexRange(
-		const IndexBox &parentBox, const TreeChildIndex &ichild)
-	{
-		assert(parentBox.isCellBox());
-
-		IndexBox subBox = parentBox;
-		for (int dir=0; dir<NDIM; dir++) {
-			// currently only even block division is allowed
-			assert(parentBox.size(dir)%2 == 0);
-			int mid = (parentBox.lo(dir)+parentBox.hi(dir)) / 2;
-			if (ichild.side(dir) == 0) {
-				subBox.vhi(dir) = mid;
-			} else {
-				subBox.vlo(dir) = mid+1;
-			}
-		}
-
-		return subBox;
-	}
 }; // struct_childindex
 
-// use this name
-typedef TreeChildIndex ChildIndex;
+// use this alias instead
+using ChildIndex = TreeChildIndex;
 
 
-} // namespace_sayaka
+// IO
+std::ostream& operator<<(std::ostream &os, const ChildIndex &ichild);
 
+
+
+SAYAKA_NS_END;
 
 

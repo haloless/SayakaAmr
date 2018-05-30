@@ -13,8 +13,8 @@
 #include "SayakaVarLocInterpolator.h"
 
 
-namespace sayaka
-{
+SAYAKA_NS_BEGIN;
+
 
 // cell -> face(dir)
 void VarLocInterpolator::interp_block_cell_to_face(
@@ -188,12 +188,12 @@ void VarLocInterpolator::interp_block_face_to_node(int dir,
 	const int jj = dir==1 ? 0 : 1;
 	const int kk = dir==2 ? 0 : 1;
 
-	const int &ilo = dstbox.ilo();
-	const int &ihi = dstbox.ihi();
-	const int &jlo = dstbox.jlo();
-	const int &jhi = dstbox.jhi();
-	const int &klo = dstbox.klo();
-	const int &khi = dstbox.khi();
+	const int ilo = dstbox.ilo();
+	const int ihi = dstbox.ihi();
+	const int jlo = dstbox.jlo();
+	const int jhi = dstbox.jhi();
+	const int klo = dstbox.klo();
+	const int khi = dstbox.khi();
 
 	const double scale = 1.0 / ((XDIM+1)*(YDIM+1)*(ZDIM+1)/2);
 
@@ -304,6 +304,42 @@ void VarLocInterpolator::interp_cell_to_node(
 	}
 }
 
-} // namespace_sayaka
+void VarLocInterpolator::interp_face_to_node(
+	int dir, 
+	TreeData & node_data, 
+	const TreeData & face_data, 
+	int dstcomp, 
+	int srccomp, 
+	int ncomp, 
+	int ngrow) const
+{
+	assert(m_tree);
+	assert(0 <= dir && dir<NDIM);
+	//
+	assert(node_data.isNodeData());
+	assert(face_data.isFaceData(dir));
+	//
+	assert(0 <= dstcomp && dstcomp + ncomp <= node_data.numComp());
+	assert(0 <= srccomp && srccomp + ncomp <= face_data.numComp());
+	//
+	assert(node_data.numGrow() >= ngrow);
+	assert(face_data.numGrow() > ngrow);
+
+	// target box
+	IndexBox dstbox = node_data.validBox();
+	dstbox.extend(ngrow);
+
+	for (int i = 0; i<m_tree->numBlocks; i++) {
+		for (int icomp = 0; icomp<ncomp; icomp++) {
+			interp_block_face_to_node(dir,
+				node_data[i], face_data[i],
+				dstbox, 
+				dstcomp + icomp, 
+				srccomp + icomp);
+		}
+	}
+}
+
+SAYAKA_NS_END;
 
 

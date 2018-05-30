@@ -4,12 +4,10 @@
 
 
 
-namespace sayaka 
-{
-
+SAYAKA_NS_BEGIN;
 
 //
-FaceIndex FaceIndex::opposite() const {
+BlockFaceIndex BlockFaceIndex::opposite() const {
 	const static int opp[] = {
 		1, 0, 
 		3, 2, 
@@ -18,8 +16,14 @@ FaceIndex FaceIndex::opposite() const {
 	return opp[m_index]; 
 }
 
-} // namespace_sayaka
+//--------------------------------------------------------------------------------
+
+std::ostream & operator<<(std::ostream & os, const FaceIndex & iface)
+{
+	os << static_cast<int>(iface);
+	return os;
+}
 
 
-
+SAYAKA_NS_END;
 

@@ -497,7 +497,7 @@ void AmrTree::refineBlocks() {
 					// may possibly on boundary
 					// go up to its parent's neighbor
 					int ineigh_parent = blocks[iparent].neighbor[iface];
-					if (ineigh_parent <= NeighborType_Boundary) {
+					if (ineigh_parent <= NeighborType::PhysBndry) {
 						blocks[i].neighbor[iface] = ineigh_parent;
 					}
 				}
@@ -791,7 +791,8 @@ void AmrTree::buildSurroundingBlocks(int buildCorner) {
 								lbref = 1;
 								surrblocks(isurr,jsurr,ksurr) = blocks[lb].neighbor[f0];
 								surrblocks.bcref(isurr,jsurr,ksurr) = SurroundingIndex(i0,j0,k0);
-							} else if (surrblocks(i0,j0,k0)<=NeighborType_Boundary) { // BC
+							}
+							else if (surrblocks(i0, j0, k0) <= NeighborType::PhysBndry) { // BC
 								surrblocks(isurr,jsurr,ksurr) = surrblocks(i0,j0,k0);
 								surrblocks.bcref(isurr,jsurr,ksurr) = SurroundingIndex(i0,j0,k0);
 							} else { // coarse cell
@@ -805,7 +806,7 @@ void AmrTree::buildSurroundingBlocks(int buildCorner) {
 								lbref = 1;
 								surrblocks(isurr,jsurr,ksurr) = blocks[lb].neighbor[f1];
 								surrblocks.bcref(isurr,jsurr,ksurr) = SurroundingIndex(i1,j1,k1);
-							} else if (surrblocks(i1,j1,k1)<=NeighborType_Boundary) { // BC
+							} else if (surrblocks(i1,j1,k1)<= NeighborType::PhysBndry) { // BC
 								// check we do not have true cell record
 								if (lbref==0) {
 									surrblocks(isurr,jsurr,ksurr) = surrblocks(i1,j1,k1);

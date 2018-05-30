@@ -6,6 +6,7 @@
 #include <vector>
 #include <map>
 #include <algorithm>
+#include <functional>
 
 #include "log.h"
 
@@ -15,9 +16,7 @@
 #include "SayakaTree.h"
 #include "SayakaTreeData.h"
 
-namespace sayaka 
-{
-
+SAYAKA_NS_BEGIN;
 
 /**
  *
@@ -45,16 +44,27 @@ public:
 }; // 
 
 
-enum BndryCondType {
+//
+// BCType is the numerical type when treating BC for the variable.
+// - Neumann
+// - Dirichlet
+// - SimpleFill
+// 
+enum BCType {
 
-	BCType_Neumann = 0, 
-	BCType_Dirichlet,
-	BCType_SimpleFill, // directly set value in ghost cell
+	Neumann = 0, 
+	Dirichlet,
+	SimpleFill, // directly set value in ghost cell
 };
 
+//
+// BCRegister is used to keep 
+//
 struct BCRegister {
 	typedef std::map<int,int> bcmap_type;
 	typedef std::map<int,double> bcval_type;
+
+	using bcfun = std::function<double(*)(const double x[], const double t)>;
 
 	bcmap_type bcmaps[SurroundingIndex::NumSurr];
 	bcval_type bcvals[SurroundingIndex::NumSurr];
@@ -78,12 +88,21 @@ struct BCRegister {
 		bcvals[ind][phys_bc] = bc_val;
 	}
 
+	void setBCMap(const SurroundingIndex &isurr, int phys_bc, int math_bc) {
+		bcmaps[isurr][phys_bc] = math_bc;
+		bcvals[isurr][phys_bc] = 0.0;
+	}
+
+	void setBCVal(const SurroundingIndex &isurr, int phys_bc, double bc_val) {
+		bcvals[isurr][phys_bc] = bc_val;
+	}
+
 	int getBCMap(int isurr, int jsurr, int ksurr, 
 		int phys_bc) const
 	{
 		// TODO
 		SurroundingIndex ind(isurr, jsurr, ksurr);
-		bcmap_type::const_iterator it = bcmaps[ind].find(phys_bc);
+		auto it = bcmaps[ind].find(phys_bc);
 		if (it == bcmaps[ind].end()) {
 			LOGPRINTF("Unknown BC mapping for phys_bc=%d\n", phys_bc);
 			exit(1);
@@ -106,9 +125,14 @@ struct BCRegister {
 
 struct BlockBCRecord
 {
+protected:
 
 	int bc_type[FaceIndex::NumFace];
 	double bc_val[FaceIndex::NumFace];
+
+
+
+public:
 
 	void setInteriorBC(int face) {
 		assert(0<=face && face<FaceIndex::NumFace);
@@ -129,7 +153,7 @@ struct BlockBCRecord
 			int ksurr = surr.kpos();
 			
 			int physbc = block.neighbor[face];
-			if (physbc <= NeighborType_Boundary) {
+			if (physbc <= NeighborType::PhysBndry) {
 				// block face is physical BC
 				int mathbc = bcreg.getBCMap(isurr,jsurr,ksurr, physbc);
 				double bcval = bcreg.getBCVal(isurr,jsurr,ksurr, physbc);
@@ -151,38 +175,63 @@ struct BlockBCRecord
 };
 
 
-/**
- *
- */
-struct BoundaryConditionPatch : public TreeDataAlgorithm
+// 
+// BCPatch is used to fill physical boundary.
+// 
+// 
+class BCPatch
 {
+protected:
 
-	typedef TreeDataAlgorithm super_type;
+	AmrTree * m_tree; // the underlying tree
+
+	VariableLocation m_varloc; // cell/face/node type
+
+	int m_ncomp;
+	int m_ngrow;
 
 	IndexBox bndryBoxes[3][3][3];
 
 	std::vector<BCRegister> bndryRegs;
 
 public:
-	BoundaryConditionPatch(
+
+	// empty, undefined BC
+	BCPatch();
+
+	__declspec(deprecated)
+	BCPatch(
 		AmrTree &tree_in, 
 		TreeData &data_in, 
-		VariableLocation varloc_in)
-		: super_type(tree_in, data_in, varloc_in),
-		bndryRegs(data_in.numComp())
-	{
-		calcRanges();
+		VariableLocation varloc_in);
+
+	void define(
+		AmrTree &tree, 
+		VariableLocation varloc, 
+		int ncomp, int ngrow);
+
+	void defineByData(TreeData &data) {
+		define(data.tree(), data.indexType(), data.numComp(), data.numGrow());
 	}
 
+	//----------------------------------------
+
+	// 
 	const BCRegister& boundaryRegister(int comp) const { 
-		assert(0<=comp && comp<tree_data.numComp());
+		//assert(0<=comp && comp<tree_data.numComp());
+		assert(0 <= comp && comp < m_ncomp);
 		return bndryRegs[comp];
 	}
 	BCRegister& boundaryRegister(int comp) { 
-		assert(0<=comp && comp<tree_data.numComp());
+		//assert(0<=comp && comp<tree_data.numComp());
+		assert(0 <= comp && comp < m_ncomp);
 		return bndryRegs[comp];
 	}
 
+	//
+	// Fill physical boundary for given block.
+	// 
+	//
 	void fillBlockBC(int physbc, 
 		int isweep, int sweepdir,
 		int xbndry, int ybndry, int zbndry,
@@ -193,13 +242,15 @@ public:
 	//	int iblock, DoubleBlockData &blockdata) const;
 
 protected:
-	//
+
+	// cell-centered
 	void fillBasicCellBlockBC(
 		int bctype, double bcval,
 		int isweep, int sweepdir,
 		int xbndry, int ybndry, int zbndry,
 		int iblock, DoubleBlockData &blockdata, int comp) const;
-	//
+	
+	// 
 	void fillBasicFacexBlockBC(
 		int bctype, double bcval,
 		int xbndry, int ybndry, int zbndry,
@@ -225,5 +276,7 @@ public:
 }; // class_boundaryconditionpatch
 
 
-} // namespace_sayaka
+
+SAYAKA_NS_END;
+
 

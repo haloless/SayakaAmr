@@ -11,15 +11,53 @@
 #include "SayakaBoundaryPatch.h"
 
 
-namespace sayaka
+SAYAKA_NS_BEGIN;
+
+BCPatch::BCPatch()
+	: m_tree(nullptr)
+	, m_varloc(VARLOC_CELL)
+	, m_ncomp(0), m_ngrow(0)
 {
+	// nothing
+}
+
+BCPatch::BCPatch(
+	AmrTree & tree_in, 
+	TreeData & data_in, 
+	VariableLocation varloc_in)
+//: super_type(tree_in, data_in, varloc_in),
+	: m_tree(&tree_in), m_varloc(varloc_in)
+	, m_ncomp(data_in.numComp()), m_ngrow(data_in.numGrow())
+	, bndryRegs(data_in.numComp())
+{
+	calcRanges();
+}
+
+void BCPatch::define(
+	AmrTree & tree, 
+	VariableLocation varloc, 
+	int ncomp, int ngrow)
+{
+	m_tree = &tree;
+	m_varloc = varloc;
+	m_ncomp = ncomp;
+	m_ngrow = ngrow;
+
+	bndryRegs.resize(ncomp);
+
+	//
+	calcRanges();
+}
 
 
-void BoundaryConditionPatch::calcRanges() {
-	const IndexBox &validBox = tree.validBlockCellBox();
+
+// 
+void BCPatch::calcRanges() {
+	const IndexBox &validBox = m_tree->validBlockCellBox();
 	const Vector3i vnum = validBox.size();
 
-	const int nlayer = tree_data.numGrow();
+	//const int nlayer = tree_data.numGrow();
+	const int nlayer = m_ngrow;
 	const IndexBox layerBox = IndexBox(validBox).extend(nlayer);
 
 	for (int kk=-ZDIM; kk<=ZDIM; kk++) {
@@ -44,18 +82,20 @@ void BoundaryConditionPatch::calcRanges() {
 }
 
 
-void BoundaryConditionPatch::fillBlockBC(
+
+void BCPatch::fillBlockBC(
 	int physbc, 
 	int isweep, int sweepdir,
 	int xbndry, int ybndry, int zbndry,
 	int iblock, DoubleBlockData &data, 
 	int scomp, int ncomp) const
 {
-	if (var_loc == VARLOC_CELL) {
+	if (m_varloc == VARLOC_CELL) {
 		for (int comp=scomp; comp<scomp+ncomp; comp++) {
+
+			// find BC value from BC register
 			const BCRegister &bcreg = boundaryRegister(comp);
 			int mathbc = bcreg.getBCMap(xbndry,ybndry,zbndry,physbc);
-			//double bcval = 0; // TODO find BC value from BC register
 			double bcval = bcreg.getBCVal(xbndry, ybndry, zbndry, physbc);
 
 			fillBasicCellBlockBC(mathbc, bcval, 
@@ -63,12 +103,40 @@ void BoundaryConditionPatch::fillBlockBC(
 				xbndry, ybndry, zbndry,
 				iblock, data, comp);
 		}
-	} else {
+	}
+#if 0
+	else if (m_varloc.isFaceVar()) {
+		for (int comp = scomp; comp < scomp + ncomp; comp++) {
+			// find BC value from BC register
+			const BCRegister &bcreg = boundaryRegister(comp);
+			int mathbc = bcreg.getBCMap(xbndry, ybndry, zbndry, physbc);
+			double bcval = bcreg.getBCVal(xbndry, ybndry, zbndry, physbc);
+
+			if (m_varloc.isFacexVar()) {
+				fillBasicFacexBlockBC(mathbc, bcval,
+					xbndry, ybndry, zbndry,
+					iblock, data, comp);
+			}
+			else if (m_varloc.isFaceyVar()) {
+				fillBasicFaceyBlockBC(mathbc, bcval,
+					xbndry, ybndry, zbndry,
+					iblock, data, comp);
+			}
+			else {
+				fillBasicFacezBlockBC(mathbc, bcval,
+					xbndry, ybndry, zbndry,
+					iblock, data, comp);
+			}
+		}
+	}
+#endif
+	
+	else {
 		LOGPRINTF("%s: cell-centered data only!\n", __FUNCTION__);
 	}
 }
 
-void BoundaryConditionPatch::fillBasicCellBlockBC(
+void BCPatch::fillBasicCellBlockBC(
 	int bctype, double bcval,
 	int isweep, int sweepdir,
 	int xbndry, int ybndry, int zbndry,
@@ -82,15 +150,15 @@ void BoundaryConditionPatch::fillBasicCellBlockBC(
 	assert(0<=isweep && isweep<NDIM);
 	assert(0<=sweepdir && sweepdir<NDIM);
 
-	const SurroundingBlocks &surr = tree.surrBlocks[iblock];
+	const SurroundingBlocks &surr = m_tree->surrBlocks[iblock];
 	assert(surr.isExternalBoundarySurrounding(xbndry,ybndry,zbndry));
 
-	if (var_loc != VARLOC_CELL) {
+	if (m_varloc != VARLOC_CELL) {
 		LOGPRINTF("%s: only for cell centered\n", __FUNCTION__);
 		exit(1);
 	}
 
-	const IndexBox &validbox = tree.validBlockCellBox();
+	const IndexBox &validbox = m_tree->validBlockCellBox();
 	const int nx = validbox.size(0);
 	const int ny = validbox.size(1);
 	const int nz = validbox.size(2);
@@ -131,12 +199,12 @@ void BoundaryConditionPatch::fillBasicCellBlockBC(
 	}
 
 	const IndexBox &bndrybox = bndryBox(xbndry, ybndry, zbndry);
-	const int &ilo = bndrybox.ilo();
-	const int &jlo = bndrybox.jlo();
-	const int &klo = bndrybox.klo();
-	const int &ihi = bndrybox.ihi();
-	const int &jhi = bndrybox.jhi();
-	const int &khi = bndrybox.khi();
+	const int ilo = bndrybox.ilo();
+	const int jlo = bndrybox.jlo();
+	const int klo = bndrybox.klo();
+	const int ihi = bndrybox.ihi();
+	const int jhi = bndrybox.jhi();
+	const int khi = bndrybox.khi();
 
 	for (int k=klo; k<=khi; k++) {
 		int kref = ksign*k + koff;
@@ -147,12 +215,12 @@ void BoundaryConditionPatch::fillBasicCellBlockBC(
 
 				const double &vref = blockdata(iref,jref,kref,comp);
 
-				if (bctype == BCType_Neumann) {
+				if (bctype == BCType::Neumann) {
 					// homogeneous Neumann only
 					blockdata(i,j,k,comp) = vref;
-				} else if (bctype == BCType_Dirichlet) {
+				} else if (bctype == BCType::Dirichlet) {
 					blockdata(i,j,k,comp) = 2.0*bcval - vref;
-				} else if (bctype == BCType_SimpleFill) {
+				} else if (bctype == BCType::SimpleFill) {
 					blockdata(i,j,k,comp) = bcval;
 				}
 			}
@@ -161,7 +229,7 @@ void BoundaryConditionPatch::fillBasicCellBlockBC(
 } // boundaryconditionpatch_fillbasiccellblockbc
 
 
-void BoundaryConditionPatch::fillBasicFacexBlockBC(
+void BCPatch::fillBasicFacexBlockBC(
 	int bctype, double bcval,
 	int xbndry, int ybndry, int zbndry,
 	int iblock, DoubleBlockData &blockdata, int comp) const
@@ -172,12 +240,12 @@ void BoundaryConditionPatch::fillBasicFacexBlockBC(
 	assert(-ZDIM<=zbndry && zbndry<=ZDIM);
 	assert(xbndry!=0 || ybndry!=0 || zbndry!=0);
 
-	if (var_loc!=VARLOC_FACE_X) {
+	if (m_varloc!=VARLOC_FACE_X) {
 		LOGPRINTF("%s: only for x-face data\n", __FUNCTION__);
 		exit(1);
 	}
 
-	const IndexBox &validbox = tree.validBlockCellBox();
+	const IndexBox &validbox = m_tree->validBlockCellBox();
 	const int nx = validbox.size(0);
 	const int ny = validbox.size(1);
 	const int nz = validbox.size(2);
@@ -208,22 +276,22 @@ void BoundaryConditionPatch::fillBasicFacexBlockBC(
 					int jref = jsign*j + joff;
 					int kref = ksign*k + koff;
 					const double &vref = blockdata(iref,jref,kref,comp);
-					if (bctype == BCType_Neumann) {
+					if (bctype == BCType::Neumann) {
 						blockdata(i,j,k,comp) = vref;
-					} else if (bctype == BCType_Dirichlet) {
+					} else if (bctype == BCType::Dirichlet) {
 						blockdata(i,j,k,comp) = 2.0*bcval - vref;
-					} else if (bctype == BCType_SimpleFill) {
+					} else if (bctype == BCType::SimpleFill) {
 						blockdata(i,j,k,comp) = bcval;
 					}
 				} else {
-					if (bctype == BCType_Neumann) {
+					if (bctype == BCType::Neumann) {
 						int iref = xbndry==-1 ? 0 : nx;
 						int jref = jsign*j + joff;
 						int kref = ksign*k + koff;
 						blockdata(i,j,k,comp) = blockdata(iref,jref,kref,comp);
-					} else if (bctype == BCType_Dirichlet) {
+					} else if (bctype == BCType::Dirichlet) {
 						blockdata(i,j,k,comp) = bcval;
-					} else if (bctype == BCType_SimpleFill) {
+					} else if (bctype == BCType::SimpleFill) {
 						blockdata(i,j,k,comp) = bcval;
 					}
 				}
@@ -232,7 +300,7 @@ void BoundaryConditionPatch::fillBasicFacexBlockBC(
 	}
 }
 
-void BoundaryConditionPatch::fillBasicFaceyBlockBC(
+void BCPatch::fillBasicFaceyBlockBC(
 	int bctype, double bcval,
 	int xbndry, int ybndry, int zbndry,
 	int iblock, DoubleBlockData &blockdata, int comp) const
@@ -243,15 +311,13 @@ void BoundaryConditionPatch::fillBasicFaceyBlockBC(
 	assert(-ZDIM<=zbndry && zbndry<=ZDIM);
 	assert(xbndry!=0 || ybndry!=0 || zbndry!=0);
 
-	if (var_loc!=VARLOC_FACE_Y) {
+	if (m_varloc!=VARLOC_FACE_Y) {
 		LOGPRINTF("%s: only for y-face data\n", __FUNCTION__);
 		exit(1);
 	}
-	if (NDIM < 2) {
-		LOGPRINTF("%s: NDIM<2\n", __FUNCTION__);
-	}
+	static_assert(NDIM >= 2, "NDIM invalid");
 
-	const IndexBox &validbox = tree.validBlockCellBox();
+	const IndexBox &validbox = m_tree->validBlockCellBox();
 	const int nx = validbox.size(0);
 	const int ny = validbox.size(1);
 	const int nz = validbox.size(2);
@@ -282,22 +348,22 @@ void BoundaryConditionPatch::fillBasicFaceyBlockBC(
 					int jref = j;
 					int kref = ksign*k + koff;
 					const double &vref = blockdata(iref,jref,kref,comp);
-					if (bctype == BCType_Neumann) {
+					if (bctype == BCType::Neumann) {
 						blockdata(i,j,k,comp) = vref;
-					} else if (bctype == BCType_Dirichlet) {
+					} else if (bctype == BCType::Dirichlet) {
 						blockdata(i,j,k,comp) = 2.0*bcval - vref;
-					} else if (bctype == BCType_SimpleFill) {
+					} else if (bctype == BCType::SimpleFill) {
 						blockdata(i,j,k,comp) = bcval;
 					}
 				} else {
-					if (bctype == BCType_Neumann) {
+					if (bctype == BCType::Neumann) {
 						int iref = isign*i + ioff;
 						int jref = ybndry==-1 ? 0 : ny;
 						int kref = ksign*k + koff;
 						blockdata(i,j,k,comp) = blockdata(iref,jref,kref,comp);
-					} else if (bctype == BCType_Dirichlet) {
+					} else if (bctype == BCType::Dirichlet) {
 						blockdata(i,j,k,comp) = bcval;
-					} else if (bctype == BCType_SimpleFill) {
+					} else if (bctype == BCType::SimpleFill) {
 						blockdata(i,j,k,comp) = bcval;
 					}
 				}
@@ -306,7 +372,7 @@ void BoundaryConditionPatch::fillBasicFaceyBlockBC(
 	}
 }
 
-void BoundaryConditionPatch::fillBasicFacezBlockBC(
+void BCPatch::fillBasicFacezBlockBC(
 	int bctype, double bcval,
 	int xbndry, int ybndry, int zbndry,
 	int iblock, DoubleBlockData &blockdata, int comp) const
@@ -317,15 +383,13 @@ void BoundaryConditionPatch::fillBasicFacezBlockBC(
 	assert(-ZDIM<=zbndry && zbndry<=ZDIM);
 	assert(xbndry!=0 || ybndry!=0 || zbndry!=0);
 
-	if (var_loc!=VARLOC_FACE_Z) {
+	if (m_varloc!=VARLOC_FACE_Z) {
 		LOGPRINTF("%s: only for z-face data\n", __FUNCTION__);
 		exit(1);
 	}
-	if (NDIM < 3) {
-		LOGPRINTF("%s: NDIM<3\n", __FUNCTION__);
-	}
+	static_assert(NDIM == 3, "NDIM invalid");
 
-	const IndexBox &validbox = tree.validBlockCellBox();
+	const IndexBox &validbox = m_tree->validBlockCellBox();
 	const int nx = validbox.size(0);
 	const int ny = validbox.size(1);
 	const int nz = validbox.size(2);
@@ -356,22 +420,22 @@ void BoundaryConditionPatch::fillBasicFacezBlockBC(
 					int jref = jsign*j + joff;
 					int kref = k;
 					const double &vref = blockdata(iref,jref,kref,comp);
-					if (bctype == BCType_Neumann) {
+					if (bctype == BCType::Neumann) {
 						blockdata(i,j,k,comp) = vref;
-					} else if (bctype == BCType_Dirichlet) {
+					} else if (bctype == BCType::Dirichlet) {
 						blockdata(i,j,k,comp) = 2.0*bcval - vref;
-					} else if (bctype == BCType_SimpleFill) {
+					} else if (bctype == BCType::SimpleFill) {
 						blockdata(i,j,k,comp) = bcval;
 					}
 				} else {
-					if (bctype == BCType_Neumann) {
+					if (bctype == BCType::Neumann) {
 						int iref = isign*i + ioff;
 						int jref = jsign*j + joff;
 						int kref = zbndry==-1 ? 0 : nz;
 						blockdata(i,j,k,comp) = blockdata(iref,jref,kref,comp);
-					} else if (bctype == BCType_Dirichlet) {
+					} else if (bctype == BCType::Dirichlet) {
 						blockdata(i,j,k,comp) = bcval;
-					} else if (bctype == BCType_SimpleFill) {
+					} else if (bctype == BCType::SimpleFill) {
 						blockdata(i,j,k,comp) = bcval;
 					}
 				}
@@ -383,9 +447,7 @@ void BoundaryConditionPatch::fillBasicFacezBlockBC(
 
 
 
-} // namespace_sayaka
-
-
+SAYAKA_NS_END;
 
 
 

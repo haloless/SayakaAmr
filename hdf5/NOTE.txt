@@ -1,2 +1,7 @@
 This is HDF5-1.8.13
 
+UPDATE to hdf5-1.8.20
+Compiled by VS2015 win64
+Note that VS2015 toolchain is binary compatible with VS2017,
+so it can be (almost) directly linked.
+

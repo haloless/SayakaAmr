@@ -6,11 +6,11 @@
 
 #include "SayakaCommons.h"
 
-namespace sayaka {
+SAYAKA_NS_BEGIN;
+
 
 //
-const int verbose = 1;
-inline int IsVerbose() { return verbose; }
+int IsVerbose();
 
 
 
@@ -26,6 +26,5 @@ CONFIG& GetConfig(const char *name=NULL);
 
 
 
-} // namespace sayaka
-
+SAYAKA_NS_END;
 

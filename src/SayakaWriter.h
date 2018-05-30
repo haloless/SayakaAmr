@@ -6,8 +6,9 @@
 #include "SayakaTree.h"
 #include "SayakaTreeData.h"
 
-namespace sayaka
-{
+
+SAYAKA_NS_BEGIN;
+
 
 struct WriterMeta
 {
@@ -46,12 +47,21 @@ public:
 	}
 };
 
+//----------------------------------------------------------------
+
+// H5, CHOMBO file
 int WriteDataHdf5(const TreeData &data, const char *filename, WriterMeta &meta);
 
+//----------------------------------------------------------------
+
+// VTK, unfortunately, it needs the library...
 int WriteTreeDataVtk(const TreeData &data, const char *filename, WriterMeta &meta);
+
 // Merge leaf blocks to a whole unstructured mesh
 int WriteLeafDataVtk(const TreeData &data, const char *filename, WriterMeta &meta);
 
 
-} // namespace_sayaka
+//----------------------------------------------------------------
+
+SAYAKA_NS_END;
 

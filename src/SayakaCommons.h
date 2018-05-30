@@ -11,12 +11,14 @@
 #	error Must have SAYAKA_SPACEDIM=2 or 3
 #endif
 
+#define SAYAKA_NS_BEGIN namespace sayaka {
+#define SAYAKA_NS_END }
 
 #include <cassert>
 
-namespace sayaka
-{
+#include <tuple>
 
+SAYAKA_NS_BEGIN;
 
 // Spacial dimensions
 const int MAX_DIM = 3;
@@ -45,6 +47,13 @@ inline void SelectDirIncr(int dir, int &ii, int &jj, int &kk) {
 inline void SelectStaggerIncr(int dir, int &ii, int &jj, int &kk) {
 	SelectDirIncr(dir, ii, jj, kk);
 }
+
+inline auto SelectStaggerIncr(int dir) {
+	int ii, jj, kk;
+	SelectStaggerIncr(dir, ii, jj, kk);
+	return std::make_tuple(ii, jj, kk);
+}
+
 inline int SelectDirIndex(int dir, int i, int j, int k) {
 	if (dir == 0) { 
 		return i;
@@ -56,9 +65,7 @@ inline int SelectDirIndex(int dir, int i, int j, int k) {
 }
 
 
-
-
-} // namespace_sayaka
+SAYAKA_NS_END;
 
 
 

@@ -241,7 +241,7 @@ class Test2
 
 	AmrTree *m_tree;
 	TreeData *m_data;
-	BoundaryConditionPatch *m_bcpatch;
+	BCPatch *m_bcpatch;
 	FillPatch *m_fillpatch;
 	TreeStateData *m_state;
 
@@ -492,7 +492,7 @@ protected:
 	}
 
 	void init_patch() {
-		m_bcpatch = new BoundaryConditionPatch(*m_tree, *m_data, VARLOC_CELL);
+		m_bcpatch = new BCPatch(*m_tree, *m_data, VARLOC_CELL);
 		for (int comp=0; comp<NumComp; comp++) {
 			BCRegister& bcreg = m_bcpatch->boundaryRegister(comp);
 			for (SurroundingIndex isurr=0; isurr<SurroundingIndex::NumSurr; isurr++) {
@@ -501,12 +501,12 @@ protected:
 				int kpos = isurr.kpos();
 
 				if (1) {
-					bcreg.setBCMap(ipos, jpos, kpos, PhysBC_Fixed, BCType_Dirichlet);
+					bcreg.setBCMap(ipos, jpos, kpos, PhysBC_Fixed, Dirichlet);
 				} else {
-					bcreg.setBCMap(ipos, jpos, kpos, PhysBC_Fixed, BCType_SimpleFill);
+					bcreg.setBCMap(ipos, jpos, kpos, PhysBC_Fixed, SimpleFill);
 				}
 
-				bcreg.setBCMap(ipos, jpos, kpos, PhysBC_Symmetry, BCType_Neumann);
+				bcreg.setBCMap(ipos, jpos, kpos, PhysBC_Symmetry, Neumann);
 			}
 		}
 
@@ -662,7 +662,7 @@ class Test3
 
 	AmrTree *m_tree;
 	TreeData *m_data;
-	BoundaryConditionPatch *m_bcpatch;
+	BCPatch *m_bcpatch;
 	FillPatch *m_fillpatch;
 
 	int m_step;
@@ -808,7 +808,7 @@ protected:
 	}
 
 	void init_patch() {
-		m_bcpatch = new BoundaryConditionPatch(*m_tree, *m_data, VARLOC_CELL);
+		m_bcpatch = new BCPatch(*m_tree, *m_data, VARLOC_CELL);
 		for (int comp=0; comp<NumComp; comp++) {
 			BCRegister& bcreg = m_bcpatch->boundaryRegister(comp);
 			for (SurroundingIndex isurr=0; isurr<SurroundingIndex::NumSurr; isurr++) {
@@ -817,12 +817,12 @@ protected:
 				int kpos = isurr.kpos();
 
 				if (1) {
-					bcreg.setBCMap(ipos, jpos, kpos, PhysBC_Fixed, BCType_Dirichlet);
+					bcreg.setBCMap(ipos, jpos, kpos, PhysBC_Fixed, Dirichlet);
 				} else {
-					bcreg.setBCMap(ipos, jpos, kpos, PhysBC_Fixed, BCType_SimpleFill);
+					bcreg.setBCMap(ipos, jpos, kpos, PhysBC_Fixed, SimpleFill);
 				}
 
-				bcreg.setBCMap(ipos, jpos, kpos, PhysBC_Symmetry, BCType_Neumann);
+				bcreg.setBCMap(ipos, jpos, kpos, PhysBC_Symmetry, Neumann);
 			}
 		}
 

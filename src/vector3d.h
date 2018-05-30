@@ -3,6 +3,9 @@
 #include <math.h>
 #include <float.h>
 
+#include <utility>
+#include <iostream>
+
 #ifdef USE_ATOMIC_VEC_OP
 #include "dependency.h"
 #endif
@@ -83,6 +86,25 @@ public:
 		return *this;
 	}
 
+	// compare by all components
+	bool allLT(const Vector3t &rhs) const { return x < rhs.x && y < rhs.y && z < rhs.z; }
+	bool allLE(const Vector3t &rhs) const { return x <= rhs.x && y <= rhs.y && z <= rhs.z; }
+	bool allGT(const Vector3t &rhs) const { return x > rhs.x && y > rhs.y && z > rhs.z; }
+	bool allGE(const Vector3t &rhs) const { return x >= rhs.x && y >= rhs.y && z >= rhs.z; }
+
+	Vector3t minVec(const Vector3t &rhs) const {
+		return Vector3t{ std::min(x, rhs.x), std::min(y, rhs.y), std::min(z,rhs.z) };
+	}
+
+	Vector3t maxVec(const Vector3t &rhs) const {
+		return Vector3t{ std::max(x, rhs.x), std::max(y, rhs.y), std::max(z,rhs.z) };
+	}
+
+	auto asTuple() const {
+		return std::make_tuple(x, y, z);
+	}
+public:
+
 	//
 	static inline Vector3t VecMake(const T &vx, const T &vy, const T &vz) {
 		Vector3t v;
@@ -101,6 +123,13 @@ public:
 		v.z = (T) 1;
 		return v;
 	}
+
+	//static inline Vector3t VecMin(const Vector3t &a, const Vector3t &b) {
+	//	return Vector3t{ std::min(a.x, b.x), std::min(a.y, b.y), std::min(a.z, b.z) };
+	//}
+	//static inline Vector3t VecMax(const Vector3t &a, const Vector3t &b) {
+	//	return Vector3t{ std::max(a.x, b.x), std::max(a.y, b.y), std::max(a.z, b.z) };
+	//}
 };
 //
 template<typename T>
@@ -134,6 +163,20 @@ inline bool operator==(const Vector3t<T> &a, const Vector3t<T> &b) {
 template<typename T>
 inline bool operator!=(const Vector3t<T> &a, const Vector3t<T> &b) {
 	return !(a==b);
+}
+
+// IO
+template<typename T>
+std::ostream& operator<<(std::ostream &os, const Vector3t<T> &v) {
+	os << '[' << v.x << ',' << v.y << ',' << v.z << ']';
+	return os;
+}
+
+template<typename T>
+std::istream& operator>>(std::istream &is, Vector3t<T> &v) {
+	char c;
+	is >> c >> c >> v.x >> c >> v.y >> c >> v.z >> c;
+	return is;
 }
 
 //int

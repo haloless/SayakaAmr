@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug3d|Win32">
       <Configuration>Debug3d</Configuration>
@@ -37,59 +37,61 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{B4705872-BF93-4059-99C7-F8C35D38BE8B}</ProjectGuid>
     <RootNamespace>SayakaAmr</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0.15063.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
+  <Import Project="$(SolutionDir)\Microsoft.VCToolsVersion.14.11.props" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <CharacterSet>MultiByte</CharacterSet>
-    <PlatformToolset>Intel C++ Compiler XE 14.0</PlatformToolset>
+    <PlatformToolset>Intel C++ Compiler 17.0</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug3d|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <CharacterSet>MultiByte</CharacterSet>
-    <PlatformToolset>Intel C++ Compiler XE 14.0</PlatformToolset>
+    <PlatformToolset>Intel C++ Compiler 17.0</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <CharacterSet>MultiByte</CharacterSet>
-    <PlatformToolset>Intel C++ Compiler XE 15.0</PlatformToolset>
+    <PlatformToolset>Intel C++ Compiler 17.0</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug3d|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <CharacterSet>MultiByte</CharacterSet>
-    <PlatformToolset>Intel C++ Compiler XE 15.0</PlatformToolset>
+    <PlatformToolset>Intel C++ Compiler 17.0</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
-    <PlatformToolset>Intel C++ Compiler XE 14.0</PlatformToolset>
+    <PlatformToolset>Intel C++ Compiler 17.0</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release3d|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
-    <PlatformToolset>Intel C++ Compiler XE 14.0</PlatformToolset>
+    <PlatformToolset>Intel C++ Compiler 17.0</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
-    <PlatformToolset>Intel C++ Compiler XE 15.0</PlatformToolset>
+    <PlatformToolset>Intel C++ Compiler 17.0</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release3d|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
-    <PlatformToolset>Intel C++ Compiler XE 15.0</PlatformToolset>
+    <PlatformToolset>Intel C++ Compiler 17.0</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -229,6 +231,7 @@
     <ClCompile Include="..\src\Sayaka.cpp" />
     <ClCompile Include="..\src\SayakaBlockData.cpp" />
     <ClCompile Include="..\src\SayakaBoundaryPatch.cpp" />
+    <ClCompile Include="..\src\SayakaBox.cpp" />
     <ClCompile Include="..\src\SayakaChildIndex.cpp" />
     <ClCompile Include="..\src\SayakaFaceIndex.cpp" />
     <ClCompile Include="..\src\SayakaFillPatch.cpp" />
@@ -238,12 +241,16 @@
     <ClCompile Include="..\src\SayakaMacOperator.cpp" />
     <ClCompile Include="..\src\SayakaMacSolver.cpp" />
     <ClCompile Include="..\src\SayakaMacUtil.cpp" />
+    <ClCompile Include="..\src\SayakaSurroundingIndex.cpp" />
     <ClCompile Include="..\src\SayakaTower.cpp" />
     <ClCompile Include="..\src\SayakaVarLocInterpolator.cpp" />
     <ClCompile Include="..\src\SayakaTree.cpp" />
     <ClCompile Include="..\src\SayakaRegrid.cpp" />
     <ClCompile Include="..\src\SayakaTreeData.cpp" />
-    <ClCompile Include="..\src\SayakaWriterHdf5.cpp" />
+    <ClCompile Include="..\src\SayakaWriterHdf5.cpp">
+      <InterproceduralOptimization Condition="'$(Configuration)|$(Platform)'=='Release|x64'">MultiFile</InterproceduralOptimization>
+      <InterproceduralOptimization Condition="'$(Configuration)|$(Platform)'=='Release3d|x64'">MultiFile</InterproceduralOptimization>
+    </ClCompile>
     <ClCompile Include="..\src\SayakaWriterVtk.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -268,10 +275,12 @@
     <ClInclude Include="..\src\SayakaTreeData.h" />
     <ClInclude Include="..\src\SayakaVarLocInterpolator.h" />
     <ClInclude Include="..\src\SayakaWriter.h" />
+    <ClInclude Include="..\src\SayamaMemory.h" />
     <ClInclude Include="..\src\Test1.h" />
     <ClInclude Include="..\src\Test4.h" />
     <ClInclude Include="..\src\Test5.h" />
     <ClInclude Include="..\src\Test6.h" />
+    <ClInclude Include="..\src\Test7.h" />
     <ClInclude Include="..\src\vector3d.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

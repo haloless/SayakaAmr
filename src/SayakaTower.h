@@ -5,9 +5,7 @@
 #include "SayakaTreeData.h"
 
 
-namespace sayaka
-{
-
+SAYAKA_NS_BEGIN;
 
 
 /**
@@ -178,6 +176,8 @@ public:
 	//
 	void syncTowerCrseFineFlux(int dir, TreeData &flux, int fluxcomp,
 		TowerFluxSyncMode sync_mode) const;
+
+	// 
 	void syncSubLevelCrseFineFlux(int fine_ilevel, int crse_ilevel,
 		int dir, TreeData &flux, int fluxcomp,
 		TowerFluxSyncMode sync_mode) const;
@@ -225,8 +225,9 @@ protected:
 
 typedef std::vector<MGLevelTower> MGLevelTowerArray;
 
-} // namespace_sayaka
 
+
+SAYAKA_NS_END;
 
 
 
