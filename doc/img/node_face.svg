@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="1122.5197"
+   height="793.70081"
+   viewBox="0 0 297 210"
+   version="1.1"
+   id="svg943"
+   inkscape:version="0.92.2 (5c3e80d, 2017-08-06)"
+   sodipodi:docname="node_face.svg"
+   inkscape:export-filename="C:\Users\sun\Documents\Visual Studio 2017\Projects\SayakaAmr\doc\img\node_face.png"
+   inkscape:export-xdpi="96"
+   inkscape:export-ydpi="96">
+  <defs
+     id="defs937" />
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="0.98994949"
+     inkscape:cx="548.3522"
+     inkscape:cy="416.55746"
+     inkscape:document-units="px"
+     inkscape:current-layer="layer1"
+     showgrid="true"
+     units="px"
+     inkscape:window-width="1920"
+     inkscape:window-height="1017"
+     inkscape:window-x="-4"
+     inkscape:window-y="-4"
+     inkscape:window-maximized="1">
+    <inkscape:grid
+       type="xygrid"
+       id="grid1488" />
+  </sodipodi:namedview>
+  <metadata
+     id="metadata940">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="レイヤー 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(0,-87)">
+    <rect
+       style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:0.26458333;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+       id="rect1490"
+       width="63.5"
+       height="63.5"
+       x="47.625"
+       y="148.83334" />
+    <rect
+       style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:0.26458332;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+       id="rect1492"
+       width="63.5"
+       height="63.5"
+       x="111.125"
+       y="148.83334" />
+    <rect
+       style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:0.26458332;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+       id="rect1494"
+       width="63.5"
+       height="63.5"
+       x="174.625"
+       y="148.83334" />
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:10.58333302px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332"
+       x="75.206131"
+       y="184.1908"
+       id="text1498"><tspan
+         sodipodi:role="line"
+         id="tspan1496"
+         x="75.206131"
+         y="184.1908"
+         style="stroke-width:0.26458332">J</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:10.58333302px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332"
+       x="203.70366"
+       y="183.68312"
+       id="text1502"><tspan
+         sodipodi:role="line"
+         id="tspan1500"
+         x="203.70366"
+         y="183.68312"
+         style="stroke-width:0.26458332">K</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:10.58333302px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332"
+       x="140.5233"
+       y="184.32512"
+       id="text1506"><tspan
+         sodipodi:role="line"
+         id="tspan1504"
+         x="140.5233"
+         y="184.32512"
+         style="stroke-width:0.26458332">I</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:10.58333302px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332"
+       x="160.19885"
+       y="-113.60003"
+       id="text1510"
+       transform="rotate(90)"><tspan
+         sodipodi:role="line"
+         id="tspan1508"
+         x="160.19885"
+         y="-113.60003"
+         style="font-size:7.05555534px;stroke-width:0.26458332">Face[0] = J</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:10.58333302px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332"
+       x="-201.44347"
+       y="170.92693"
+       id="text1510-9"
+       transform="rotate(-90)"><tspan
+         sodipodi:role="line"
+         id="tspan1508-6"
+         x="-201.44347"
+         y="170.92693"
+         style="font-size:7.05555534px;stroke-width:0.26458332">Face[1] = K</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:10.58333302px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332"
+       x="121.73249"
+       y="155.32164"
+       id="text1510-9-0"><tspan
+         sodipodi:role="line"
+         id="tspan1508-6-8"
+         x="121.73249"
+         y="155.32164"
+         style="font-size:7.05555534px;stroke-width:0.26458332">Face[3] = L</tspan></text>
+    <rect
+       style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:0.26458332;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+       id="rect1550"
+       width="63.5"
+       height="63.5"
+       x="111.125"
+       y="85.333336" />
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:10.58333302px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332"
+       x="141.35196"
+       y="120.6908"
+       id="text1498-8"><tspan
+         sodipodi:role="line"
+         id="tspan1496-2"
+         x="141.35196"
+         y="120.6908"
+         style="stroke-width:0.26458332">L</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:10.58333302px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332"
+       x="117.32187"
+       y="219.32797"
+       id="text1510-9-0-0"><tspan
+         sodipodi:role="line"
+         id="tspan1508-6-8-6"
+         x="117.32187"
+         y="219.32797"
+         style="font-size:7.05555534px;stroke-width:0.26458332">Face[2] &lt; -20</tspan><tspan
+         sodipodi:role="line"
+         x="117.32187"
+         y="232.55714"
+         style="font-size:7.05555534px;stroke-width:0.26458332"
+         id="tspan1588">(physical boundary)</tspan></text>
+  </g>
+</svg>

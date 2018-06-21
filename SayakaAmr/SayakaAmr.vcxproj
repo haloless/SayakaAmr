@@ -281,6 +281,7 @@
     <ClInclude Include="..\src\Test5.h" />
     <ClInclude Include="..\src\Test6.h" />
     <ClInclude Include="..\src\Test7.h" />
+    <ClInclude Include="..\src\Test8.h" />
     <ClInclude Include="..\src\vector3d.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -1,5 +1,14 @@
 #pragma once
 
+/*
+Time-dependent Stokes flow in periodic channel.
+It shows solving flows using staggered grid.
+*/
+
+
+
+
+
 
 #include <cmath>
 

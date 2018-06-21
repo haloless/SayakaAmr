@@ -103,6 +103,8 @@ public:
 	auto asTuple() const {
 		return std::make_tuple(x, y, z);
 	}
+
+
 public:
 
 	//

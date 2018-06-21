@@ -455,6 +455,10 @@ struct RealBox
 		Vector3d vlen = vhi - vlo;
 		return vlen;
 	}
+
+	bool contains(const Vector3d &v) const {
+		return vlo.allLE(v) && vhi.allGE(v);
+	}
 }; // struct_realbox
 
 // IO
